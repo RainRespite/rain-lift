@@ -1,0 +1,1 @@
+{"name":"rainlift-web","private":true,"type":"module","scripts":{"test":"node --test tests/data.test.mjs"}}
