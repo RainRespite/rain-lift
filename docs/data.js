@@ -7,7 +7,7 @@ const integer=(x,min,max)=>Number.isInteger(x)&&finite(x,min,max);
 const text=x=>typeof x==='string'&&x.trim().length>0&&x.length<=200;
 const ids=xs=>Array.isArray(xs)&&xs.every(x=>text(x.id))&&new Set(xs.map(x=>x.id)).size===xs.length;
 export function validate(d){
- const ex=e=>e&&text(e.id)&&text(e.name)&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999));
+ const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999));
  const set=s=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15);
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(set)&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement);
@@ -28,7 +28,23 @@ export function parseBackup(raw){
  }
  validate(d);return d;
 }
-export function previous(d,id){return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length);}
+// Names only detect ambiguous legacy identities; history is always linked by ID.
+export function identityConflict(d,id){
+ const all=[...d.plans.flatMap(p=>p.exercises),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===id);
+ const names=new Set(all.map(e=>e.name)),known=new Set(all.flatMap(e=>e.knownNames??[]));
+ return names.size>1&&![...names].every(name=>known.has(name));
+}
+export function reviseExercise(d,original,changes,mode='rename'){
+ if(!['rename','new'].includes(mode))throw Error('请选择只是改名，还是换成独立动作。');
+ const updated={...original,...changes,id:original.id};
+ if(mode==='new')return {...updated,id:uid(),knownNames:[updated.name]};
+ if(updated.name!==original.name){
+  if(identityConflict(d,original.id))throw Error('旧记录的动作归属待确认，请将此动作另存为独立动作。原记录会保留在按训练历史中。');
+  updated.knownNames=[...new Set([...(original.knownNames??[]),original.name,updated.name])];
+ }
+ return updated;
+}
+export function previous(d,id){if(identityConflict(d,id))return undefined;return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length);}
 export function suggested(d,m){return m.overrideWeight??previous(d,m.exercise.id)?.sets[m.sets.length]?.weight??m.sets.at(-1)?.weight??m.exercise.weight;}
 export function start(d,planID){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID);if(!p?.exercises.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:p.exercises.map(e=>({id:uid(),exercise:structuredClone(e),sets:[],skipped:false}))};}
 export function record(d,id,reps,weight,timed=true,now=Date.now()){
