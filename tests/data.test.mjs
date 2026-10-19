@@ -70,7 +70,7 @@ test('legacy renamed ID recovers recommendations without rewriting or losing rec
  const loaded=new Repository(storage);assert.deepEqual(loaded.db.history,snapshots);assert.equal(previous(loaded.db,e.id).sets[0].weight,8);
 });
 test('same exercise ID in multiple plans can retain a stale name after a rename',()=>{
- const d=initial(),e=d.plans[0].exercises[0];d.plans[1].exercises=[{...e,name:'另一个名称'}];assert.equal(identityConflict(d,e.id),false);
+ const d=initial(),e=d.plans[0].exercises[0];d.plans[1].exercises=[{...e,name:'另一个名称',knownNames:[e.name,'另一个名称']}];assert.equal(identityConflict(d,e.id),false);
  completeFirst(d,d.plans[0],40,8);start(d,d.plans[1].id);assert.equal(suggested(d,d.active.movements[0]),40);
  const updated=reviseExercise(d,d.plans[1].exercises[0],{name:'统一新名称'});
  assert.equal(updated.id,e.id);assert.deepEqual(new Set(updated.knownNames),new Set([e.name,'另一个名称','统一新名称']));
