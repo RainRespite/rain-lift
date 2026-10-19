@@ -16,6 +16,20 @@ test('invalid set cannot corrupt current training',()=>{const st=new Storage(),r
 test('absolute deadline works after suspension',()=>{assert.equal(remaining({end:95000},65000),30);assert.equal(remaining({end:95000},100000),0);});
 
 function completeFirst(d,plan,weight,reps){start(d,plan.id);record(d,d.active.movements[0].id,reps,weight);finish(d);}
+test('editing an existing exercise is a rename and legacy same-ID history remains linked',()=>{
+ const storage=new Storage(),d=initial(),p=d.plans[0],e=p.exercises[0];
+ e.name='龙下胸';completeFirst(d,p,32.5,10);e.name='龙下胸新名称';start(d,p.id);
+ const raw=JSON.stringify(d);storage.setItem(KEY,raw);const r=new Repository(storage);
+ assert.equal(identityConflict(r.db,e.id),false);
+ assert.equal(previous(r.db,e.id).sets[0].weight,32.5);
+ assert.equal(suggested(r.db,r.db.active.movements[0]),32.5);
+ assert.equal(storage.getItem(KEY),raw);
+ assert.equal(r.db.history[0].movements[0].exercise.name,'龙下胸');
+ assert.deepEqual(r.db,d);assert.deepEqual(parseBackup(raw),d);
+ const before=structuredClone(r.db.history),renamed=reviseExercise(r.db,r.db.plans[0].exercises[0],{name:'龙下胸再次改名'});
+ assert.equal(renamed.id,e.id);assert.equal(previous(r.db,renamed.id).sets[0].weight,32.5);
+ assert.deepEqual(r.db.history,before);assert.equal(storage.getItem(KEY),raw);
+});
 test('similar and identical names with independent IDs never share history',()=>{
  const d=initial();d.plans[0].exercises=[exercise('龙弯举',10)];d.plans[1].exercises=[exercise('龙侧平举',5)];
  const curl=d.plans[0].exercises[0],raise=d.plans[1].exercises[0];
@@ -42,21 +56,28 @@ test('one exercise intentionally referenced in multiple plans shares history',()
  const d=initial(),e=d.plans[0].exercises[0];d.plans[1].exercises=[structuredClone(e)];completeFirst(d,d.plans[0],55,8);
  start(d,d.plans[1].id);assert.equal(suggested(d,d.active.movements[0]),55);
 });
-test('legacy renamed ID is quarantined without rewriting or losing records',()=>{
+test('legacy renamed ID recovers recommendations without rewriting or losing records',()=>{
  const storage=new Storage(),d=initial(),p=d.plans[0],e=p.exercises[0];e.name='龙侧平举';completeFirst(d,p,7,15);
- e.name='龙弯举';e.weight=20;completeFirst(d,p,20,9);start(d,p.id);
+ d.history[0].started=1000;d.history[0].ended=2000;
+ e.name='龙侧平举改名';e.weight=20;completeFirst(d,p,8,12);d.history[0].started=3000;d.history[0].ended=4000;start(d,p.id);
  const raw=JSON.stringify(d);storage.setItem(KEY,raw);const r=new Repository(storage);
- assert.equal(identityConflict(r.db,e.id),true);assert.equal(previous(r.db,e.id),undefined);assert.equal(suggested(r.db,r.db.active.movements[0]),20);
+ assert.equal(identityConflict(r.db,e.id),false);assert.equal(previous(r.db,e.id).sets[0].weight,8);assert.equal(suggested(r.db,r.db.active.movements[0]),8);
  assert.equal(storage.getItem(KEY),raw);assert.deepEqual(r.db,d);assert.deepEqual(parseBackup(raw),d);
- assert.throws(()=>reviseExercise(r.db,e,{name:'另一个名称'},'rename'),/归属待确认/);
+ const renamed=reviseExercise(r.db,e,{name:'另一个名称'});assert.equal(renamed.id,e.id);
+ assert.deepEqual(new Set(renamed.knownNames),new Set(['龙侧平举','龙侧平举改名','另一个名称']));
  const independent=reviseExercise(r.db,e,{name:'龙弯举'},'new');assert.notEqual(independent.id,e.id);assert.equal(previous(r.db,independent.id),undefined);
+ const snapshots=structuredClone(r.db.history);r.change(next=>{next.plans[0].exercises[0]=reviseExercise(next,next.plans[0].exercises[0],{name:'保存后的名称'});});
+ const loaded=new Repository(storage);assert.deepEqual(loaded.db.history,snapshots);assert.equal(previous(loaded.db,e.id).sets[0].weight,8);
 });
-test('ID reused across different plans is detected before any history exists',()=>{
- const d=initial(),e=d.plans[0].exercises[0];d.plans[1].exercises=[{...e,name:'另一个动作'}];assert.equal(identityConflict(d,e.id),true);
+test('same exercise ID in multiple plans can retain a stale name after a rename',()=>{
+ const d=initial(),e=d.plans[0].exercises[0];d.plans[1].exercises=[{...e,name:'另一个名称'}];assert.equal(identityConflict(d,e.id),false);
+ completeFirst(d,d.plans[0],40,8);start(d,d.plans[1].id);assert.equal(suggested(d,d.active.movements[0]),40);
+ const updated=reviseExercise(d,d.plans[1].exercises[0],{name:'统一新名称'});
+ assert.equal(updated.id,e.id);assert.deepEqual(new Set(updated.knownNames),new Set([e.name,'另一个名称','统一新名称']));
 });
-test('legacy conflict isolated in completed sessions remains flagged after plan deletion',()=>{
- const d=initial(),p=d.plans[0],e=p.exercises[0];completeFirst(d,p,40,8);e.name='不同动作';completeFirst(d,p,5,15);d.plans=[];
- assert.equal(identityConflict(d,e.id),true);assert.equal(previous(d,e.id),undefined);assert.equal(d.history.length,2);validate(d);
+test('legacy rename history remains available after plan deletion',()=>{
+ const d=initial(),p=d.plans[0],e=p.exercises[0];completeFirst(d,p,40,8);d.history[0].started=1000;d.history[0].ended=2000;e.name='新的名称';completeFirst(d,p,5,15);d.history[0].started=3000;d.history[0].ended=4000;d.plans=[];
+ assert.equal(identityConflict(d,e.id),false);assert.equal(previous(d,e.id).sets[0].weight,5);assert.equal(d.history.length,2);validate(d);
 });
 test('active exercise replacement has no old recommendation or transferred sets',()=>{
  const d=initial(),p=d.plans[0];completeFirst(d,p,50,10);start(d,p.id);const m=d.active.movements[0],mid=m.id;

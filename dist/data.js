@@ -28,23 +28,20 @@ export function parseBackup(raw){
  }
  validate(d);return d;
 }
-// Names only detect ambiguous legacy identities; history is always linked by ID.
-export function identityConflict(d,id){
- const all=[...d.plans.flatMap(p=>p.exercises),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===id);
- const names=new Set(all.map(e=>e.name)),known=new Set(all.flatMap(e=>e.knownNames??[]));
- return names.size>1&&![...names].every(name=>known.has(name));
-}
+// The stable ID defines an exercise. Different names are rename snapshots,
+// including legacy records without knownNames. Keep this export for old callers.
+export function identityConflict(){return false;}
 export function reviseExercise(d,original,changes,mode='rename'){
- if(!['rename','new'].includes(mode))throw Error('请选择只是改名，还是换成独立动作。');
+ if(!['rename','new'].includes(mode))throw Error('动作编辑类型不正确。');
  const updated={...original,...changes,id:original.id};
  if(mode==='new')return {...updated,id:uid(),knownNames:[updated.name]};
  if(updated.name!==original.name){
-  if(identityConflict(d,original.id))throw Error('旧记录的动作归属待确认，请将此动作另存为独立动作。原记录会保留在按训练历史中。');
-  updated.knownNames=[...new Set([...(original.knownNames??[]),original.name,updated.name])];
+  const references=[...d.plans.flatMap(p=>p.exercises),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===original.id);
+  updated.knownNames=[...new Set([...references.flatMap(e=>[...(e.knownNames??[]),e.name]),...(original.knownNames??[]),original.name,updated.name])];
  }
  return updated;
 }
-export function previous(d,id){if(identityConflict(d,id))return undefined;return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length);}
+export function previous(d,id){return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length);}
 export function suggested(d,m){return m.overrideWeight??previous(d,m.exercise.id)?.sets[m.sets.length]?.weight??m.sets.at(-1)?.weight??m.exercise.weight;}
 export function start(d,planID){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID);if(!p?.exercises.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:p.exercises.map(e=>({id:uid(),exercise:structuredClone(e),sets:[],skipped:false}))};}
 export function record(d,id,reps,weight,timed=true,now=Date.now()){
@@ -52,7 +49,7 @@ export function record(d,id,reps,weight,timed=true,now=Date.now()){
  const s={id:uid(),weight,reps,date:now};m.sets.push(s);m.skipped=false;if(timed)d.rest={setID:s.id,name:m.exercise.name,end:now+m.exercise.rest*1000};return s;
 }
 export function removeSet(d,mid,sid,sessionID=null){const session=sessionID?d.history.find(s=>s.id===sessionID):d.active;const m=session?.movements.find(m=>m.id===mid);if(!m)throw Error('找不到该动作。');m.sets=m.sets.filter(s=>s.id!==sid);if(d.rest?.setID===sid)d.rest=null;}
-export function finish(d){if(!d.active)throw Error('没有进行中的训练。');d.active.ended=Date.now();d.history.unshift(d.active);d.active=null;d.rest=null;}
+export function finish(d){if(!d.active)throw Error('没有进行中的训练。');d.active.ended=Date.now();d.history.unshift(structuredClone(d.active));d.active=null;d.rest=null;}
 export const remaining=(rest,now=Date.now())=>rest?Math.max(0,Math.ceil((rest.end-now)/1000)):0;
 export class Repository{
  constructor(storage){this.storage=storage;this.writable=true;try{const raw=storage.getItem(KEY);this.db=raw?validate(JSON.parse(raw)):initial();}catch(e){this.db={format:'rainlift-web',version:1,plans:[],history:[],active:null,rest:null};this.writable=false;this.loadError='无法读取本地记录。为避免覆盖原数据，已停止写入。请先导出原始文件，或从备份恢复。';}}
