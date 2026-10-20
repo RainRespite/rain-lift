@@ -11,7 +11,7 @@ export function validate(d){
  const set=s=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15);
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(set)&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement);
- if(!d||d.format!=='rainlift-web'||d.version!==1||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.active!=null&&(!session(d.active)||d.active.ended!=null||d.history.some(s=>s.id===d.active.id))))throw Error('备份格式或训练数据不正确，原记录未改变。');
+ if(!d||d.format!=='rainlift-web'||d.version!==1||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
  if(d.rest!=null&&(!text(d.rest.setID)||!text(d.rest.name)||!finite(d.rest.end,0,1e15)||!d.active?.movements.some(m=>m.sets.some(s=>s.id===d.rest.setID))))throw Error('备份中的休息计时无效。');
  return d;
 }
@@ -20,7 +20,8 @@ export function parseBackup(raw){
  if(!d.format&&d.version===1){
   const swiftDate=x=>(x+978307200)*1000;
   d.format='rainlift-web';d.active??=null;d.rest??=null;
-  for(const session of [...d.history,...(d.active?[d.active]:[])]){
+  if(d.deletedHistory!==undefined){if(!Array.isArray(d.deletedHistory))throw Error('备份格式或训练数据不正确，原记录未改变。');for(const entry of d.deletedHistory){if(!entry?.session)throw Error('备份格式或训练数据不正确，原记录未改变。');entry.deletedAt=swiftDate(entry.deletedAt);}}
+  for(const session of [...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]){
    session.started=swiftDate(session.started);session.ended=session.ended==null?null:swiftDate(session.ended);session.note??='';
    for(const m of session.movements){m.skipped??=false;for(const s of m.sets)s.date=swiftDate(s.date);}
   }
@@ -30,6 +31,9 @@ export function parseBackup(raw){
 }
 const currentReferences=(d,id)=>[...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===id);
 const allReferences=(d,id)=>[...currentReferences(d,id),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)).filter(e=>e.id===id)];
+// Deleted snapshots are retained for recovery, but do not prove live aliases or
+// contribute recommendations. Explicit identity splits still update their IDs.
+const allStoredReferences=(d,id)=>[...allReferences(d,id),...(d.deletedHistory??[]).flatMap(entry=>entry.session.movements.map(m=>m.exercise)).filter(e=>e.id===id)];
 export function identityNames(d,id){return [...new Set(currentReferences(d,id).map(e=>e.name))];}
 // Different historical names can be rename snapshots. Concurrent definitions
 // need an explicit alias lineage before they can safely share recommendations.
@@ -49,7 +53,7 @@ export function identityConflict(d,id){
 export function splitExerciseIdentity(d,id){
  if(!identityConflict(d,id))return [];
  const mappings=identityNames(d,id).map(name=>({name,id:uid()})),byName=new Map(mappings.map(e=>[e.name,e.id]));
- for(const e of allReferences(d,id))if(byName.has(e.name))e.id=byName.get(e.name);
+ for(const e of allStoredReferences(d,id))if(byName.has(e.name))e.id=byName.get(e.name);
  return mappings;
 }
 export function confirmExerciseIdentity(d,id,canonicalName){
@@ -79,6 +83,18 @@ export function record(d,id,reps,weight,timed=true,now=Date.now()){
  const s={id:uid(),weight,reps,date:now};m.sets.push(s);m.skipped=false;if(timed)d.rest={setID:s.id,name:m.exercise.name,end:now+m.exercise.rest*1000};return s;
 }
 export function removeSet(d,mid,sid,sessionID=null){const session=sessionID?d.history.find(s=>s.id===sessionID):d.active;const m=session?.movements.find(m=>m.id===mid);if(!m)throw Error('找不到该动作。');m.sets=m.sets.filter(s=>s.id!==sid);if(d.rest?.setID===sid)d.rest=null;}
+export function deleteHistory(d,sessionID,now=Date.now()){
+ const index=d.history.findIndex(s=>s.id===sessionID);if(index<0)throw Error('找不到这次历史训练，可能已删除。');
+ if(!finite(now,0,1e15))throw Error('删除时间无效，原记录未改变。');
+ const session=d.history[index];if(session.ended==null||(d.deletedHistory??[]).some(entry=>entry.session.id===sessionID))throw Error('这次训练的记录冲突，原记录未改变。');
+ d.history.splice(index,1);(d.deletedHistory??=[]).unshift({session,deletedAt:now});return session;
+}
+export function restoreHistory(d,sessionID){
+ const index=(d.deletedHistory??[]).findIndex(entry=>entry.session.id===sessionID);if(index<0)throw Error('找不到这次已删除训练，可能已恢复。');
+ const {session}=d.deletedHistory[index];if(d.history.some(s=>s.id===sessionID)||d.active?.id===sessionID)throw Error('已存在相同编号的训练，无法恢复，原记录未改变。');
+ const before=d.history.findIndex(s=>s.started<session.started);d.history.splice(before<0?d.history.length:before,0,session);
+ d.deletedHistory.splice(index,1);if(!d.deletedHistory.length)delete d.deletedHistory;return session;
+}
 export function finish(d){if(!d.active)throw Error('没有进行中的训练。');d.active.ended=Date.now();d.history.unshift(structuredClone(d.active));d.active=null;d.rest=null;}
 export const remaining=(rest,now=Date.now())=>rest?Math.max(0,Math.ceil((rest.end-now)/1000)):0;
 export class Repository{
