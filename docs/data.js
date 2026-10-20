@@ -95,7 +95,13 @@ export function restoreHistory(d,sessionID){
  const before=d.history.findIndex(s=>s.started<session.started);d.history.splice(before<0?d.history.length:before,0,session);
  d.deletedHistory.splice(index,1);if(!d.deletedHistory.length)delete d.deletedHistory;return session;
 }
-export function finish(d){if(!d.active)throw Error('没有进行中的训练。');d.active.ended=Date.now();d.history.unshift(structuredClone(d.active));d.active=null;d.rest=null;}
+export function finish(d){
+ if(!d.active)throw Error('没有进行中的训练。');
+ const session=structuredClone(d.active);session.ended=Date.now();
+ session.movements=session.movements.filter(m=>m.sets.length>0);
+ if(session.movements.length)d.history.unshift(session);
+ d.active=null;d.rest=null;
+}
 export const remaining=(rest,now=Date.now())=>rest?Math.max(0,Math.ceil((rest.end-now)/1000)):0;
 export class Repository{
  constructor(storage){this.storage=storage;this.writable=true;try{const raw=storage.getItem(KEY);this.db=raw?validate(JSON.parse(raw)):initial();}catch(e){this.db={format:'rainlift-web',version:1,plans:[],history:[],active:null,rest:null};this.writable=false;this.loadError='无法读取本地记录。为避免覆盖原数据，已停止写入。请先导出原始文件，或从备份恢复。';}}

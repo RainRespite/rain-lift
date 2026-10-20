@@ -134,7 +134,7 @@ test('ending, removing or replacing an active-only collision cannot silently res
  }
  const storage=new Storage();storage.setItem(data.KEY,JSON.stringify(d));const repo=new data.Repository(storage);
  repo.repairIdentity(next=>data.splitExerciseIdentity(next,OLD_ID));repo.change(data.finish);
- assert.equal(repo.db.active,null);assert.equal(repo.db.history.length,d.history.length+1);
+ assert.equal(repo.db.active,null);assert.equal(repo.db.history.length,d.history.length);
 });
 
 test('ordinary edits that retain collision evidence still work and proven aliases can be removed normally',()=>{
