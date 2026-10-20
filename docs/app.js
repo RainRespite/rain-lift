@@ -1,8 +1,9 @@
-import {KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,remaining,Repository} from './data.js';
+import {KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,remaining,Repository} from './data.js?v=1.4';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=>new Date(n).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
 let repo;try{repo=new Repository(localStorage);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
 let view='today',selected=null,historyID=null,tab='exercise',lastTap=0,audio,awake=null,offlineReady=false;
+let serviceRegistration=null,offlineSetup=null,updateAvailable=false,lastUpdateCheck=0,updateChecking=false,updateState='联网后可检查更新';
 const db=()=>repo.db,movement=()=>db().active?.movements.find(m=>m.id===selected)??db().active?.movements[0];
 // Names follow one identity across current references; completed sessions remain snapshots.
 function syncExerciseName(d,e){
@@ -20,7 +21,7 @@ function unlockAudio(){try{audio??=new (window.AudioContext||window.webkitAudioC
 function beep(){try{if(audio?.state==='running'){const o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.frequency.value=740;g.gain.setValueAtTime(.15,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.5);o.start();o.stop(audio.currentTime+.5);}}catch{}}
 function render(){
  const active=db().active;
- $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
+ $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
  document.body.classList.toggle('has-timer',!!(active&&db().rest));updateClock();
 }
 function conflictIDs(){return [...new Set([...db().plans.flatMap(p=>p.exercises.map(e=>e.id)),...(db().active?.movements.map(m=>m.exercise.id)??[])])].filter(id=>identityConflict(db(),id));}
@@ -99,7 +100,8 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
 });
 
 $('#app').addEventListener('change',e=>{if(e.target.id==='weight'){const raw=e.target.value,v=Number(raw),m=movement();if(raw.trim()===''||!Number.isFinite(v)||v<0||v>10000){toast('请输入 0–10000 之间的重量');render();return;}try{repo.change(d=>{d.active.movements.find(x=>x.id===m.id).overrideWeight=v;});}catch(err){toast(err.message);render();}}if(e.target.id==='note')try{repo.change(d=>{d.active.note=e.target.value;});}catch(err){toast(err.message);}});
-setInterval(updateClock,500);window.addEventListener('online',render);window.addEventListener('offline',render);document.addEventListener('visibilitychange',updateClock);
+function connectionStatus(){const status=$('#connection-state');if(status)status.textContent=navigator.onLine?'本机保存':'离线模式';}
+setInterval(updateClock,500);window.addEventListener('online',connectionStatus);window.addEventListener('offline',connectionStatus);document.addEventListener('visibilitychange',updateClock);
 window.addEventListener('storage',e=>{if(e.key===KEY){try{repo.db=validate(JSON.parse(e.newValue));render();toast('记录已从另一窗口更新');}catch{toast('另一窗口的数据发生变化，请重新打开页面。');}}});
 render();
 
@@ -111,10 +113,12 @@ function history(){
  return `<p class="eyebrow">每一次训练，都有迹可循</p><h1>训练历史</h1>${identityWarnings()}<div class="segmented"><button data-action="history-tab" data-tab="exercise" class="${tab==='exercise'?'selected':''}">按动作</button><button data-action="history-tab" data-tab="session" class="${tab==='session'?'selected':''}">按训练</button></div>${!sessions.length?'<div class="empty"><h2>还没有完成的训练</h2><p>训练结束后，重量和次数会出现在这里。</p></div>':tab==='session'?sessions.map(s=>historySession(s)).join(''):`<div class="history-list">${exercises.map(m=>`<button data-action="history-open" data-id="${m.exercise.id}" class="history-item"><div><b>${esc(exerciseName(m.exercise.id))}</b><small>${m.sets.map(s=>fmt(s.weight)+' × '+s.reps).join(' / ')}</small></div><span>›</span></button>`).join('')}</div>`}`;
 }
 function historySession(s,exerciseID=null){return `<article class="history-session"><div class="row"><h2>${esc(s.name)}</h2><span class="muted">${date(s.started)}</span></div><p class="footnote">${new Date(s.started).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})} · 共 ${s.movements.reduce((n,m)=>n+m.sets.length,0)} 组</p>${s.movements.filter(m=>!exerciseID||m.exercise.id===exerciseID).map(m=>`<div class="history-movement"><h3>${esc(m.exercise.name)}${m.skipped?' · 跳过':''}</h3>${m.sets.length?m.sets.map((x,i)=>`<button class="set-row" data-action="history-edit" data-session="${s.id}" data-movement="${m.id}" data-id="${x.id}"><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${fmt(x.weight)} <small>${esc(m.exercise.unit)}</small></b><span>× ${x.reps} 次</span><span class="edit-label">修改</span></button>`).join(''):'<p class="muted">未记录组数</p>'}</div>`).join('')}${s.note?`<p class="history-note">${esc(s.note)}</p>`:''}</article>`;}
-function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。如需锁屏提醒，请同时使用手机系统计时器。</p></aside><button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 1.3<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
+function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：1.4</p><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">更新保留本机记录。正在编辑时请先保存或关闭；训练中的重量和备注会在刷新前保存。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。如需锁屏提醒，请同时使用手机系统计时器。</p></aside><button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 1.4<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
 function download(raw,name){const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function extraAction(a,b){
- if(a==='history-resolve'){identityResolver(b.dataset.id);}
+ if(a==='app-update'){checkAppUpdate(true);}
+ else if(a==='app-reload'){reloadApp();}
+ else if(a==='history-resolve'){identityResolver(b.dataset.id);}
  else if(a==='history-unconfirmed'){historyID=null;view='history';tab='session';render();}
  else if(a==='history-tab'){tab=b.dataset.tab;render();}
  else if(a==='history-back'){historyID=null;render();}
@@ -128,5 +132,51 @@ let wakeDesired=false;
 async function toggleWake(){if(awake){wakeDesired=false;await awake.release();awake=null;render();return;}if(!navigator.wakeLock){toast('当前浏览器不支持保持屏幕常亮');return;}try{awake=await navigator.wakeLock.request('screen');wakeDesired=true;awake.addEventListener('release',()=>{awake=null;if(view==='settings')render();});render();toast('已保持屏幕常亮');}catch{toast('无法保持常亮，请检查低电量模式和浏览器设置');}}
 $('#app').addEventListener('change',async e=>{if(e.target.id!=='import-file')return;const file=e.target.files[0];if(!file)return;try{if(file.size>10*1024*1024)throw Error('文件过大，请选择 10 MB 以内的训练备份。');const data=parseBackup(await file.text());confirmAction('用备份恢复记录？',`备份含 ${data.plans.length} 个计划、${data.history.length} 次历史训练。将替换当前全部记录；原数据会先保留一份本机副本。`,'恢复备份',()=>{try{repo.restore(data);selected=null;historyID=null;announced=null;render();toast('备份已恢复');return true;}catch(err){toast('恢复失败，原数据未改变：'+err.message);return false;}});}catch(err){toast(err.message);}finally{e.target.value='';}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&wakeDesired&&!awake)try{awake=await navigator.wakeLock.request('screen');awake.addEventListener('release',()=>{awake=null;});}catch{}});
-if('serviceWorker' in navigator){window.addEventListener('load',async()=>{try{await navigator.serviceWorker.register('./sw.js');await navigator.serviceWorker.ready;offlineReady=true;if(view==='settings')render();await navigator.storage?.persist?.();}catch{offlineReady=false;toast('离线准备失败，请联网重新打开一次。');}});}
+function updateStatus(){
+ const status=$('#update-state');if(status)status.textContent=updateState;
+ const offline=$('#offline-state');if(offline)offline.textContent=offlineReady?'已就绪':'准备中，请保持联网';
+ const notice=$('#update-notice');if(notice)notice.innerHTML=updateAvailable?'<aside class="update-notice"><span>新版已就绪</span><button class="primary" data-action="app-reload">刷新到新版</button></aside>':'';
+}
+function prepareOffline(){
+ if(!offlineSetup)offlineSetup=(async()=>{
+  serviceRegistration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+  await navigator.serviceWorker.ready;offlineReady=true;updateStatus();
+  navigator.storage?.persist?.().catch(()=>{});
+  return serviceRegistration;
+ })().catch(err=>{offlineSetup=null;throw err;});
+ return offlineSetup;
+}
+async function checkAppUpdate(manual=false){
+ if(!('serviceWorker' in navigator)){if(manual)toast('当前浏览器不支持离线更新');return;}
+ if(!navigator.onLine){if(manual)toast('请联网后检查更新');return;}
+ if(updateChecking||(!manual&&Date.now()-lastUpdateCheck<60000))return;
+ updateChecking=true;lastUpdateCheck=Date.now();updateState='正在检查更新…';updateStatus();
+ try{
+  const registration=await prepareOffline();await registration.update();
+  updateState=updateAvailable?'新版已就绪，请点“刷新到新版”':registration.installing?'正在下载新版，完成后会提示刷新':'已完成检查；有新版时会提示刷新';
+ }catch{updateState='检查失败，请联网后重试';if(manual)toast(updateState);}
+ finally{updateChecking=false;updateStatus();}
+}
+function reloadApp(){
+ if($('#modal').open){toast('请先保存或关闭正在编辑的内容，再刷新');return;}
+ try{
+  const weight=$('#weight'),note=$('#note');
+  if(db().active&&(weight||note))repo.change(d=>{
+   if(weight){const raw=weight.value,v=Number(raw);if(raw.trim()===''||!Number.isFinite(v)||v<0||v>10000)throw Error('请先填写有效重量，再刷新');d.active.movements.find(x=>x.id===movement().id).overrideWeight=v;}
+   if(note)d.active.note=note.value;
+  });
+  window.location.reload();
+ }catch(err){toast('未刷新：'+err.message);}
+}
+$('#update-notice')?.addEventListener('click',e=>{if(e.target.closest('[data-action]')?.dataset.action==='app-reload')reloadApp();});
+if('serviceWorker' in navigator){
+ let controlled=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+  if(controlled){updateAvailable=true;updateState='新版已就绪，请点“刷新到新版”';}
+  controlled=true;offlineReady=true;updateStatus();
+ });
+ window.addEventListener('load',async()=>{try{await prepareOffline();await checkAppUpdate();}catch{updateState='离线准备失败，请联网后重试';updateStatus();}});
+ window.addEventListener('online',()=>checkAppUpdate());
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkAppUpdate();});
+}
 if(document.modelContext?.registerTool){const lifecycle=new AbortController();const tools=[{name:'read_training_state',description:'查看当前训练、动作及已记录的组；不修改数据。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:async()=>structuredClone({active:db().active,rest:db().rest})},{name:'record_training_set',description:'完成并保存当前选中动作的一组，自动开始休息计时。',inputSchema:{type:'object',properties:{reps:{type:'integer',minimum:1,maximum:999},weight:{type:'number',minimum:0,maximum:10000}},required:['reps','weight'],additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{if(!movement()||!Number.isInteger(input?.reps)||input.reps<1||input.reps>999||typeof input.weight!=='number'||!Number.isFinite(input.weight)||input.weight<0||input.weight>10000)throw Error('需要当前训练动作和有效的重量、次数。');const result=repo.change(d=>record(d,movement().id,input.reps,input.weight));render();return {id:result.id,weight:result.weight,reps:result.reps};}}];for(const t of tools)try{Promise.resolve(document.modelContext.registerTool(t,{signal:lifecycle.signal})).catch(()=>{});}catch{}window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}

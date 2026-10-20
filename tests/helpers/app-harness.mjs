@@ -58,8 +58,8 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     close() { this.open = false; }
     showModal() { this.open = true; }
   }
-  const app = new Element(), modal = new Element(), toast = new Element();
-  const roots = {'#app': app, '#modal': modal, '#toast': toast};
+  const app = new Element(), modal = new Element(), toast = new Element(), updateNotice = new Element();
+  const roots = {'#app': app, '#modal': modal, '#toast': toast, '#update-notice': updateNotice};
   const document = {
     body: new Element(), visibilityState: 'visible',
     addEventListener() {},
@@ -86,6 +86,7 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     get html() { return app.innerHTML; },
     get modalHtml() { return modal.innerHTML; },
     get toast() { return toast.textContent; },
+    get updateNotice() { return updateNotice.innerHTML; },
     get modalOpen() { return modal.open; },
     run(code) { return vm.runInContext(code, context); },
     action(action, dataset = {}) {
