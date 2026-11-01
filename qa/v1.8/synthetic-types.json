@@ -1,0 +1,22 @@
+{
+  "format": "rainlift-exercise-meta",
+  "version": 1,
+  "exportedAt": "2026-11-01T00:00:00Z",
+  "entries": [
+    {
+      "exerciseID": "synthetic-exercise-0",
+      "unit": "kg",
+      "loadType": "external"
+    },
+    {
+      "exerciseID": "synthetic-exercise-3",
+      "unit": "kg",
+      "loadType": "external"
+    },
+    {
+      "exerciseID": "synthetic-exercise-4",
+      "unit": "kg",
+      "loadType": "external"
+    }
+  ]
+}

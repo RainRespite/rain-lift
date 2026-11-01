@@ -1,0 +1,18 @@
+✔ metadata UI changes are explicit, cancel safely and persist separately after save and reopen (12.4725ms)
+✔ metadata save quota failure retains dialog and does not claim success or change any data (1.140125ms)
+✔ metadata UI disables conflicted identities and refuses a forced submit without writing (0.846416ms)
+✔ metadata import previews and cancels, then restores only after confirmation with a prior copy (1.677167ms)
+✔ failed metadata restore keeps preview available and protects stored training and metadata (0.981125ms)
+✔ metadata dialog rejects stale tab writes and stale pending import instead of overwriting another page (0.982167ms)
+✔ metadata import and health import share a picker but maintain distinct formats and stores (1.055625ms)
+✔ metadata raw and pre-restore exports preserve original text, and corrupt type storage blocks report generation (0.989291ms)
+✔ report generation and copy are offline, use compact text without IDs or appended JSON and never upload (4.027208ms)
+✔ detail preview switches and exports independently while the copy action still uses compact text (2.350542ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 59.671417

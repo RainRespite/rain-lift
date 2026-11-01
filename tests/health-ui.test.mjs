@@ -33,10 +33,10 @@ test('invalid and oversized files cannot change either store; failed storage ret
 
 test('health page and report reopen offline without network calls or training writes; copy requires explicit action',async()=>{
  const storage=new Storage();new HealthRepository(storage).import(parseHealthImport(JSON.stringify(envelope)));
- let copies=0,uploads=0;const app=createAppHarness(workout(),{storage,globals:{navigator:{onLine:false,clipboard:{async writeText(value){copies++;assert.match(value,/数据局限|局限/);}}},fetch(){uploads++;throw Error('network forbidden');},XMLHttpRequest:class{constructor(){uploads++;throw Error('network forbidden');}}}});
+ let copies=0,uploads=0;const app=createAppHarness(workout(),{storage,globals:{navigator:{onLine:false,clipboard:{async writeText(value){copies++;assert.match(value,/不据此推断/);assert.doesNotMatch(value,/完整 JSON|"format"/);}}},fetch(){uploads++;throw Error('network forbidden');},XMLHttpRequest:class{constructor(){uploads++;throw Error('network forbidden');}}}});
  const train=storage.getItem(KEY),health=storage.getItem(HEALTH_KEY);
  app.action('health-open');assert.match(app.html,/离线模式/);assert.match(app.html,/合成测试 iPhone/);
- app.action('health-report');assert.match(app.modalHtml,/本地预览/);assert.match(app.modalHtml,/暂无数据/);assert.equal(copies,0);
+ app.action('health-report');assert.match(app.modalHtml,/本地预览/);assert.match(app.modalHtml,/合成测试 iPhone/);assert.equal(copies,0);
  app.modalAction('copy');await new Promise(resolve=>setImmediate(resolve));assert.equal(copies,1);assert.equal(uploads,0);
  assert.equal(storage.getItem(KEY),train);assert.equal(storage.getItem(HEALTH_KEY),health);
  const reopened=createAppHarness(null,{storage,globals:{navigator:{onLine:false}}});reopened.action('health-open');assert.match(reopened.html,/合成测试 iPhone/);

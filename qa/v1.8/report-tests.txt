@@ -1,0 +1,30 @@
+✔ AI report uses all valid history with separate seven-day overview and excludes deleted, active, future and empty sessions (10.590334ms)
+✔ report boundaries respect selected timezone including dates across DST (0.754166ms)
+✔ exercise identity and units stay separate while renamed snapshots remain visible (1.114208ms)
+✔ unresolved identity conflict disables performance comparison (0.53925ms)
+✔ missing recovery data stays null and text never calls recorded sets effective sets (0.450292ms)
+✔ report includes real health records and has no fabricated missing HRV (0.403958ms)
+✔ generating and rendering report leave both source stores unchanged and omit private notes (0.455791ms)
+✔ report pure module has no network, storage or automatic clipboard operation (0.343834ms)
+✔ future set timestamps are omitted instead of shown as existing observations (0.403417ms)
+✔ all history contributes baseline, latest two, coverage, extrema and thirty-day frequency (1.049625ms)
+✔ same-weight repetitions compare corresponding recorded sets without confusing extra sets with progress (0.755709ms)
+✔ confirmed bodyweight movements retain 68/73 as body mass and flag one-session differences (0.783833ms)
+✔ assisted loads have distinct interpretation and unknown loads do not assume external weights (1.273ms)
+✔ same-name independent IDs display distinct labels and never reveal internal UUIDs (0.635209ms)
+✔ unresolved shared-ID names are isolated, not silently presented as one movement (0.568708ms)
+✔ renamed identity follows exact ID and lineage across older historical snapshots (0.6145ms)
+✔ abnormal session elapsed time is warned once without fabricated training duration or interval rest (0.594041ms)
+✔ three comparable records describe sustained recorded-repetition patterns without diagnosing recovery (1.080667ms)
+✔ invalid and unfinished sessions and malformed sets do not become observations (0.319792ms)
+✔ health trends keep real source-separated values, dates and imported workout heart rate (0.623083ms)
+✔ older imported health is dated as historical and cannot masquerade as current recovery (0.324958ms)
+✔ default is five concise sections without repeated raw JSON while detailed text and JSON remain separate (0.838667ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63.931209

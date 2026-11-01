@@ -1,0 +1,119 @@
+{
+  "format": "rainlift-health",
+  "version": 1,
+  "timeZone": "Asia/Shanghai",
+  "exportedAt": "2026-11-01T12:00:00+08:00",
+  "records": [
+    {
+      "id": "synthetic-hrv-29",
+      "type": "hrv",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-29T07:00:00+08:00",
+      "end": "2026-10-29T07:00:00+08:00",
+      "unit": "ms",
+      "value": 45,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-resting_heart_rate-29",
+      "type": "resting_heart_rate",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-29T07:00:00+08:00",
+      "end": "2026-10-29T07:00:00+08:00",
+      "unit": "bpm",
+      "value": 60,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-sleep-29",
+      "type": "sleep",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-29T00:00:00+08:00",
+      "end": "2026-10-29T07:00:00+08:00",
+      "unit": "min",
+      "value": 420,
+      "aggregation": "sample",
+      "stage": "asleep"
+    },
+    {
+      "id": "synthetic-hrv-30",
+      "type": "hrv",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-30T07:00:00+08:00",
+      "end": "2026-10-30T07:00:00+08:00",
+      "unit": "ms",
+      "value": 43,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-resting_heart_rate-30",
+      "type": "resting_heart_rate",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-30T07:00:00+08:00",
+      "end": "2026-10-30T07:00:00+08:00",
+      "unit": "bpm",
+      "value": 61,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-sleep-30",
+      "type": "sleep",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-30T00:00:00+08:00",
+      "end": "2026-10-30T07:00:00+08:00",
+      "unit": "min",
+      "value": 420,
+      "aggregation": "sample",
+      "stage": "asleep"
+    },
+    {
+      "id": "synthetic-hrv-31",
+      "type": "hrv",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-31T07:00:00+08:00",
+      "end": "2026-10-31T07:00:00+08:00",
+      "unit": "ms",
+      "value": 41,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-resting_heart_rate-31",
+      "type": "resting_heart_rate",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-31T07:00:00+08:00",
+      "end": "2026-10-31T07:00:00+08:00",
+      "unit": "bpm",
+      "value": 62,
+      "aggregation": "sample"
+    },
+    {
+      "id": "synthetic-sleep-31",
+      "type": "sleep",
+      "source": {
+        "name": "合成验收 Watch"
+      },
+      "start": "2026-10-31T00:00:00+08:00",
+      "end": "2026-10-31T07:00:00+08:00",
+      "unit": "min",
+      "value": 420,
+      "aggregation": "sample",
+      "stage": "asleep"
+    }
+  ]
+}

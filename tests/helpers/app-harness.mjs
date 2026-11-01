@@ -37,6 +37,7 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
       this.nodes = [...html.matchAll(/<(button|input|select|textarea)\b([^>]*)>(?:([\s\S]*?)<\/\1>)?/g)].map(match => {
         const node = new Element(attributes(match[2]));
         node.textContent = decode((match[3] ?? '').replace(/<[^>]*>/g, ''));
+        if (match[1] === 'textarea') node.value = decode(match[3] ?? '');
         if (match[1] === 'select') {
           const options = [...(match[3] ?? '').matchAll(/<option\b([^>]*)>([\s\S]*?)<\/option>/g)];
           const option = options.find(option => /\bselected\b/.test(option[1])) ?? options[0];

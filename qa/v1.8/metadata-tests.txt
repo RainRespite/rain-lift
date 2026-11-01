@@ -1,0 +1,21 @@
+✔ confirmed exact bodyweight names are local defaults; unconfirmed and similar names remain unknown (1.476125ms)
+✔ same-name distinct IDs and distinct units can be independently configured without inheritance (0.620375ms)
+✔ explicit unknown override persists and suppresses the bodyweight default after reopening (0.082959ms)
+✔ trusted renames preserve defaults and independently stored types without rewriting historical snapshots (0.272833ms)
+✔ unresolved identity conflicts cannot use stored types or confirmed names; split IDs do not inherit metadata (0.2765ms)
+✔ metadata writes never change training, health, original IDs, timestamps, deleted data or v1 backups (0.370833ms)
+✔ quota failures preserve metadata in memory and on disk, including first-write failure (0.116208ms)
+✔ stale metadata pages cannot overwrite changes from another page (0.608917ms)
+✔ corrupt metadata blocks writes and normal exports; raw remains available and explicit restore can recover (0.172625ms)
+✔ metadata exports and replacement restores are independent, validated and preserve a pre-restore copy (0.141125ms)
+✔ replacement restore failure at backup or final write never changes current metadata state (0.115375ms)
+✔ invalid, duplicated, oversized, unknown-version metadata imports fail before any write (1.12425ms)
+✔ unknown metadata IDs remain inactive and editing a missing exercise cannot create entries (0.078167ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39.739333

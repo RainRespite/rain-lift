@@ -1,0 +1,13 @@
+{
+  "baselineFileCount": 54,
+  "baselineChanged": [],
+  "dataAndHealthModulesByteIdentical": true,
+  "docsDistIdentical": true,
+  "noRuntimeDependencies": true,
+  "trainFormat": 1,
+  "reportFormat": 2,
+  "remote": "https://github.com/RainRespite/rain-lift.git",
+  "pushed": false,
+  "deployed": false,
+  "phase": "local acceptance before user-authorized GitHub delivery"
+}

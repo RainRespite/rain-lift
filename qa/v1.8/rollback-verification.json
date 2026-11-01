@@ -1,0 +1,9 @@
+{
+  "baseline": "ab19095da06e282a047b8c8aeb3832bc158e73a8",
+  "preparedDirectory": "/Users/rain/Documents/ChatGPT/Rain‘s fitness/rain-lift-v1.8-recovery-20261101/rollback-v1.7",
+  "freshCache": "rainlift-shell-v1.7.0-rollback-f4b5b429-ab07-4bf2-897f-d221eba7794f",
+  "coreFilesIdentical": true,
+  "docsDistIdentical": true,
+  "existingOutputRejected": true,
+  "productionRollback": false
+}

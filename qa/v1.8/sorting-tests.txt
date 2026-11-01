@@ -1,0 +1,43 @@
+✔ editing a planned exercise directly renames it and keeps its history after reload (14.974208ms)
+✔ legacy same-ID renamed history remains visible under current name and retains original session names (0.759709ms)
+✔ renaming a recorded active movement preserves recorded sets and exercise identity (1.789167ms)
+✔ a saved rename updates current references across plans while a cancelled draft does not (1.287458ms)
+✔ saving todays arrangement cannot let later renames rewrite completed session snapshots (2.193958ms)
+✔ saving an unrelated plan setting tolerates older aliases without renaming other references (0.791625ms)
+✔ opening the saved app checks for updates without the worker HTTP cache (10.264417ms)
+✔ a new controlling worker shows a refresh action without reloading or touching records or an open draft (1.5475ms)
+✔ foreground checks are throttled but the manual check always checks (2.029375ms)
+✔ a first offline installation does not claim a new version needs reloading (0.61525ms)
+✔ network changes and update checks preserve unsaved training input (0.773791ms)
+✔ refresh saves current training input before navigating (0.636833ms)
+✔ removing a fixed-plan exercise saves through actual editor callback and reload (10.788667ms)
+✔ an unrecorded selected movement can be removed from shoulder training (1.289416ms)
+✔ removing all unrecorded movements leaves an editable empty workout (1.232417ms)
+✔ removal affects the fixed plan only after explicitly saving this arrangement (1.099416ms)
+✔ a stale remove callback cannot delete sets recorded after the dialog opened (0.974667ms)
+✔ a storage failure leaves the selected exercise and original plan intact (0.680334ms)
+✔ skipping a recorded movement preserves sets and rest through updating its plan (2.738667ms)
+✔ regression: moving the implicit first selection keeps the current training movement (10.912709ms)
+✔ regression: training sorting preserves legal weight and note before change/blur (1.455667ms)
+✔ fixed draft move 5 to 1 saves exact stable order and reloads (1.85825ms)
+✔ fixed draft move 5 to 2 saves exact stable order and reloads (1.131ms)
+✔ fixed draft move 1 to 5 saves exact stable order and reloads (0.822208ms)
+✔ consecutive moves and repeated same position preserve the plan name and other relative order (1.488208ms)
+✔ cancelling position selection or the fixed plan leaves persistent data unchanged (1.242834ms)
+✔ active move preserves all sets, timestamps, note, selection and rest; fixed plan/history are unchanged (2.701875ms)
+✔ an explicitly selected movement remains selected after another movement crosses it (1.346ms)
+✔ only an explicit confirmed fixed-plan update synchronizes active order (1.452ms)
+✔ fixed save failure retains the order draft and reports failure without claiming success (0.754083ms)
+✔ active order save failure preserves the old preview, records, timer and storage (0.741833ms)
+✔ failed pending input save prevents opening a sort dialog and keeps entered inputs (0.552375ms)
+✔ position menu lists every destination, marks the current position and supports one item (1.209542ms)
+✔ invalid destinations cannot corrupt a plan or active workout (1.198125ms)
+✔ a stale active-order callback resolves by movement ID instead of an old array index (0.835666ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.433625

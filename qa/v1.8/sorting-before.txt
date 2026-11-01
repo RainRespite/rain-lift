@@ -1,0 +1,255 @@
+✖ regression: moving the implicit first selection keeps the current training movement (10.959167ms)
+✖ regression: training sorting preserves legal weight and note before change/blur (1.386834ms)
+✖ fixed draft move 5 to 1 saves exact stable order and reloads (0.991167ms)
+✖ fixed draft move 5 to 2 saves exact stable order and reloads (0.595125ms)
+✖ fixed draft move 1 to 5 saves exact stable order and reloads (0.765125ms)
+✖ consecutive moves and repeated same position preserve the plan name and other relative order (0.622542ms)
+✖ cancelling position selection or the fixed plan leaves persistent data unchanged (0.554042ms)
+✖ active move preserves all sets, timestamps, note, selection and rest; fixed plan/history are unchanged (1.869791ms)
+✖ an explicitly selected movement remains selected after another movement crosses it (0.786959ms)
+✖ only an explicit confirmed fixed-plan update synchronizes active order (0.619167ms)
+✖ fixed save failure retains the order draft and reports failure without claiming success (0.826791ms)
+✖ active order save failure preserves the old preview, records, timer and storage (0.677166ms)
+✖ failed pending input save prevents opening a sort dialog and keeps entered inputs (0.607958ms)
+✖ position menu lists every destination, marks the current position and supports one item (0.490834ms)
+✖ invalid destinations cannot corrupt a plan or active workout (0.484666ms)
+✖ a stale active-order callback resolves by movement ID instead of an old array index (0.520834ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 0
+ℹ fail 16
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 59.456208
+
+✖ failing tests:
+
+test at tests/sorting-ui.test.mjs:16:1
+✖ regression: moving the implicit first selection keeps the current training movement (10.959167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '115eb98d-2e61-4110-b2c9-898f3b675255'
+  - 'f5188f0c-8bc7-4a34-91a3-4503cffadf19'
+  
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:19:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.start (node:internal/test_runner/test:1177:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '115eb98d-2e61-4110-b2c9-898f3b675255',
+    expected: 'f5188f0c-8bc7-4a34-91a3-4503cffadf19',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/sorting-ui.test.mjs:22:1
+✖ regression: training sorting preserves legal weight and note before change/blur (1.386834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 67.5
+  
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:26:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 67.5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/sorting-ui.test.mjs:35:3
+✖ fixed draft move 5 to 1 saves exact stable order and reloads (0.991167ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at planMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:13:32)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:37:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:35:3
+✖ fixed draft move 5 to 2 saves exact stable order and reloads (0.595125ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at planMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:13:32)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:37:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:35:3
+✖ fixed draft move 1 to 5 saves exact stable order and reloads (0.765125ms)
+  Error: Missing modal action: order-0
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at planMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:13:32)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:37:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:45:1
+✖ consecutive moves and repeated same position preserve the plan name and other relative order (0.622542ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at planMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:13:32)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:47:2)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:52:1
+✖ cancelling position selection or the fixed plan leaves persistent data unchanged (0.554042ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:54:4)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:59:1
+✖ active move preserves all sets, timestamps, note, selection and rest; fixed plan/history are unchanged (1.869791ms)
+  Error: Missing modal action: order-0
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at activeMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:14:34)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:62:21)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:70:1
+✖ an explicitly selected movement remains selected after another movement crosses it (0.786959ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at activeMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:14:34)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:72:2)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:76:1
+✖ only an explicit confirmed fixed-plan update synchronizes active order (0.619167ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at activeMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:14:34)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:77:88)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:84:1
+✖ fixed save failure retains the order draft and reports failure without claiming success (0.826791ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at planMove (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:13:32)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:85:83)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:90:1
+✖ active order save failure preserves the old preview, records, timer and storage (0.677166ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:91:90)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:96:1
+✖ failed pending input save prevents opening a sort dialog and keeps entered inputs (0.607958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:98:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/sorting-ui.test.mjs:101:1
+✖ position menu lists every destination, marks the current position and supports one item (0.490834ms)
+  Error: Missing modal action: order-2
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:102:85)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:107:1
+✖ invalid destinations cannot corrupt a plan or active workout (0.484666ms)
+  Error: Missing modal action: order-0
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:110:5)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at tests/sorting-ui.test.mjs:114:1
+✖ a stale active-order callback resolves by movement ID instead of an old array index (0.520834ms)
+  Error: Missing modal action: order-4
+      at Object.modalAction (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/helpers/app-harness.mjs:105:26)
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.8/tests/sorting-ui.test.mjs:115:104)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)

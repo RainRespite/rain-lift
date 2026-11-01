@@ -79,7 +79,7 @@ test('install fetches the complete new shell instead of repackaging a stale HTTP
  const worker = workerHarness();
  await worker.lifecycle('install');
  const paths = [...worker.installed.keys()].map(url => new URL(url).pathname);
- for (const name of ['index.html', 'app.js', 'data.js', 'health.js', 'health-ui.js', 'ai-report.js']) assert.ok(paths.some(path => path.endsWith('/' + name)), name + ' should be precached');
+ for (const name of ['index.html', 'app.js', 'data.js', 'health.js', 'health-ui.js', 'ai-report.js', 'exercise-meta.js']) assert.ok(paths.some(path => path.endsWith('/' + name)), name + ' should be precached');
  for (const response of worker.installed.values()) assert.match(await response.clone().text(), /^network:/);
  assert.equal(worker.skipped, true);
 });
@@ -112,7 +112,7 @@ test('module requests read this worker shell instead of the first matching cache
 test('health and report modules are available from the installed cache without new network requests', async () => {
  const worker = workerHarness();await worker.lifecycle('install');await worker.lifecycle('activate');
  const count=worker.requests.length;
- for(const name of ['health.js','health-ui.js','ai-report.js']){
+ for(const name of ['health.js','health-ui.js','ai-report.js', 'exercise-meta.js']){
   const url=[...worker.installed.keys()].find(url=>new URL(url).pathname.endsWith('/'+name));
   assert.equal(await worker.request(url),'network:/rain-lift/'+name);
  }
@@ -126,13 +126,28 @@ test('a health-module precache failure cannot activate an incomplete upgrade',as
  assert.equal(await worker.old.get(new URL('index.html',scope).href).clone().text(),'old-installed-index');
 });
 
+test('metadata module is cached for offline type editing and report generation',async()=>{
+ const worker=workerHarness();await worker.lifecycle('install');await worker.lifecycle('activate');
+ const count=worker.requests.length;
+ const url=[...worker.installed.keys()].find(url=>new URL(url).pathname.endsWith('/exercise-meta.js'));
+ assert.ok(url);assert.equal(await worker.request(url),'network:/rain-lift/exercise-meta.js');
+ assert.equal(worker.requests.length,count);
+});
+
+test('a failed metadata download retains the previous complete app cache',async()=>{
+ const worker=workerHarness({failPath:'/exercise-meta.js'});
+ await assert.rejects(worker.lifecycle('install'),/Precache request failed/);
+ assert.equal(worker.skipped,false);assert.equal(worker.claimed,false);assert.equal(worker.installed.size,0);
+ assert.equal(await worker.old.get(new URL('index.html',scope).href).clone().text(),'old-installed-index');
+});
+
 test('Pages and Sites ship identical versioned shells and the worker never clears local data',()=>{
- const names=['index.html','app.js','data.js','health.js','health-ui.js','ai-report.js','style.css','sw.js','manifest.webmanifest'];
+ const names=['index.html','app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','style.css','sw.js','manifest.webmanifest'];
  for(const name of names)assert.equal(fs.readFileSync(new URL('../docs/'+name,import.meta.url),'utf8'),fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8'),name);
  const sw=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(sw,/localStorage|indexedDB|Clear-Site-Data|\.clear\(/);
- for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.7'),name);
- for(const name of ['app.js','health-ui.js','ai-report.js']){
-  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.7$/);
+ for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.8'),name);
+ for(const name of ['app.js','health-ui.js','ai-report.js', 'exercise-meta.js']){
+  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.8$/);
  }
 });

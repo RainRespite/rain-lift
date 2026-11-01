@@ -1,0 +1,1286 @@
+{
+  "format": "rainlift-web",
+  "version": 1,
+  "plans": [
+    {
+      "id": "synthetic-plan",
+      "name": "合成验收计划",
+      "exercises": [
+        {
+          "id": "synthetic-exercise-0",
+          "name": "器械卧推",
+          "weight": 30,
+          "unit": "kg",
+          "step": 2.5,
+          "reps": [
+            8,
+            9,
+            10
+          ],
+          "rest": 90,
+          "target": 3
+        },
+        {
+          "id": "synthetic-exercise-1",
+          "name": "引体向上",
+          "weight": 68,
+          "unit": "kg",
+          "step": 2.5,
+          "reps": [
+            8,
+            9,
+            10
+          ],
+          "rest": 90,
+          "target": 3
+        },
+        {
+          "id": "synthetic-exercise-2",
+          "name": "龙悬",
+          "weight": 68,
+          "unit": "kg",
+          "step": 2.5,
+          "reps": [
+            8,
+            9,
+            10
+          ],
+          "rest": 90,
+          "target": 3
+        },
+        {
+          "id": "synthetic-exercise-3",
+          "name": "侧平举",
+          "weight": 45,
+          "unit": "kg",
+          "step": 2.5,
+          "reps": [
+            8,
+            9,
+            10
+          ],
+          "rest": 90,
+          "target": 3
+        },
+        {
+          "id": "synthetic-exercise-4",
+          "name": "坐姿划船",
+          "weight": 50,
+          "unit": "kg",
+          "step": 2.5,
+          "reps": [
+            8,
+            9,
+            10
+          ],
+          "rest": 90,
+          "target": 3
+        }
+      ]
+    }
+  ],
+  "history": [
+    {
+      "id": "synthetic-session-5",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1793412000000,
+      "ended": 1793415600000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-5-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-5-0-0",
+              "date": 1793412000000,
+              "weight": 32.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-5-0-1",
+              "date": 1793412090000,
+              "weight": 32.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-5-0-2",
+              "date": 1793412180000,
+              "weight": 32.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-5-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-5-1-0",
+              "date": 1793412600000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-5-1-1",
+              "date": 1793412690000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-5-1-2",
+              "date": 1793412780000,
+              "weight": 73,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-5-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-5-2-0",
+              "date": 1793413200000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-5-2-1",
+              "date": 1793413290000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-5-2-2",
+              "date": 1793413380000,
+              "weight": 73,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-5-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-5-3-0",
+              "date": 1793413800000,
+              "weight": 47.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-5-3-1",
+              "date": 1793413890000,
+              "weight": 47.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-5-3-2",
+              "date": 1793413980000,
+              "weight": 47.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-5-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-5-4-0",
+              "date": 1793414400000,
+              "weight": 52.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-5-4-1",
+              "date": 1793414490000,
+              "weight": 52.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-5-4-2",
+              "date": 1793414580000,
+              "weight": 52.5,
+              "reps": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-session-4",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1792807200000,
+      "ended": 1792936800000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-4-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-4-0-0",
+              "date": 1792807200000,
+              "weight": 32.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-4-0-1",
+              "date": 1792807290000,
+              "weight": 32.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-4-0-2",
+              "date": 1792807380000,
+              "weight": 32.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-4-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-4-1-0",
+              "date": 1792807800000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-4-1-1",
+              "date": 1792807890000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-4-1-2",
+              "date": 1792807980000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-4-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-4-2-0",
+              "date": 1792808400000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-4-2-1",
+              "date": 1792808490000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-4-2-2",
+              "date": 1792808580000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-4-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-4-3-0",
+              "date": 1792809000000,
+              "weight": 47.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-4-3-1",
+              "date": 1792809090000,
+              "weight": 47.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-4-3-2",
+              "date": 1792809180000,
+              "weight": 47.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-4-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-4-4-0",
+              "date": 1792809600000,
+              "weight": 52.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-4-4-1",
+              "date": 1792809690000,
+              "weight": 52.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-4-4-2",
+              "date": 1792809780000,
+              "weight": 52.5,
+              "reps": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-session-3",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1792202400000,
+      "ended": 1792206000000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-3-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-3-0-0",
+              "date": 1792202400000,
+              "weight": 32.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-3-0-1",
+              "date": 1792202490000,
+              "weight": 32.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-3-0-2",
+              "date": 1792202580000,
+              "weight": 32.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-3-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-3-1-0",
+              "date": 1792203000000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-3-1-1",
+              "date": 1792203090000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-3-1-2",
+              "date": 1792203180000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-3-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-3-2-0",
+              "date": 1792203600000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-3-2-1",
+              "date": 1792203690000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-3-2-2",
+              "date": 1792203780000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-3-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-3-3-0",
+              "date": 1792204200000,
+              "weight": 47.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-3-3-1",
+              "date": 1792204290000,
+              "weight": 47.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-3-3-2",
+              "date": 1792204380000,
+              "weight": 47.5,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-3-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-3-4-0",
+              "date": 1792204800000,
+              "weight": 52.5,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-3-4-1",
+              "date": 1792204890000,
+              "weight": 52.5,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-3-4-2",
+              "date": 1792204980000,
+              "weight": 52.5,
+              "reps": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-session-2",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1791511200000,
+      "ended": 1791514800000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-2-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-2-0-0",
+              "date": 1791511200000,
+              "weight": 30,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-2-0-1",
+              "date": 1791511290000,
+              "weight": 30,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-2-0-2",
+              "date": 1791511380000,
+              "weight": 30,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-2-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-2-1-0",
+              "date": 1791511800000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-2-1-1",
+              "date": 1791511890000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-2-1-2",
+              "date": 1791511980000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-2-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-2-2-0",
+              "date": 1791512400000,
+              "weight": 68,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-2-2-1",
+              "date": 1791512490000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-2-2-2",
+              "date": 1791512580000,
+              "weight": 68,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-2-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-2-3-0",
+              "date": 1791513000000,
+              "weight": 45,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-2-3-1",
+              "date": 1791513090000,
+              "weight": 45,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-2-3-2",
+              "date": 1791513180000,
+              "weight": 45,
+              "reps": 8
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-2-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-2-4-0",
+              "date": 1791513600000,
+              "weight": 50,
+              "reps": 10
+            },
+            {
+              "id": "synthetic-set-2-4-1",
+              "date": 1791513690000,
+              "weight": 50,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-2-4-2",
+              "date": 1791513780000,
+              "weight": 50,
+              "reps": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-session-1",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1790820000000,
+      "ended": 1790823600000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-1-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-1-0-0",
+              "date": 1790820000000,
+              "weight": 30,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-1-0-1",
+              "date": 1790820090000,
+              "weight": 30,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-1-0-2",
+              "date": 1790820180000,
+              "weight": 30,
+              "reps": 7
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-1-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-1-1-0",
+              "date": 1790820600000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-1-1-1",
+              "date": 1790820690000,
+              "weight": 68,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-1-1-2",
+              "date": 1790820780000,
+              "weight": 68,
+              "reps": 7
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-1-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-1-2-0",
+              "date": 1790821200000,
+              "weight": 68,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-1-2-1",
+              "date": 1790821290000,
+              "weight": 68,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-1-2-2",
+              "date": 1790821380000,
+              "weight": 68,
+              "reps": 7
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-1-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-1-3-0",
+              "date": 1790821800000,
+              "weight": 45,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-1-3-1",
+              "date": 1790821890000,
+              "weight": 45,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-1-3-2",
+              "date": 1790821980000,
+              "weight": 45,
+              "reps": 7
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-1-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-1-4-0",
+              "date": 1790822400000,
+              "weight": 50,
+              "reps": 9
+            },
+            {
+              "id": "synthetic-set-1-4-1",
+              "date": 1790822490000,
+              "weight": 50,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-1-4-2",
+              "date": 1790822580000,
+              "weight": 50,
+              "reps": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "synthetic-session-0",
+      "planID": "synthetic-plan",
+      "name": "合成验收计划",
+      "started": 1789869600000,
+      "ended": 1789873200000,
+      "note": "仅合成验收；不是用户记录",
+      "movements": [
+        {
+          "id": "synthetic-movement-0-0",
+          "exercise": {
+            "id": "synthetic-exercise-0",
+            "name": "器械卧推",
+            "weight": 30,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-0-0-0",
+              "date": 1789869600000,
+              "weight": 30,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-0-0-1",
+              "date": 1789869690000,
+              "weight": 30,
+              "reps": 7
+            },
+            {
+              "id": "synthetic-set-0-0-2",
+              "date": 1789869780000,
+              "weight": 30,
+              "reps": 6
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-0-1",
+          "exercise": {
+            "id": "synthetic-exercise-1",
+            "name": "引体向上",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-0-1-0",
+              "date": 1789870200000,
+              "weight": 68,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-0-1-1",
+              "date": 1789870290000,
+              "weight": 68,
+              "reps": 7
+            },
+            {
+              "id": "synthetic-set-0-1-2",
+              "date": 1789870380000,
+              "weight": 68,
+              "reps": 6
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-0-2",
+          "exercise": {
+            "id": "synthetic-exercise-2",
+            "name": "龙悬",
+            "weight": 68,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-0-2-0",
+              "date": 1789870800000,
+              "weight": 68,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-0-2-1",
+              "date": 1789870890000,
+              "weight": 68,
+              "reps": 7
+            },
+            {
+              "id": "synthetic-set-0-2-2",
+              "date": 1789870980000,
+              "weight": 68,
+              "reps": 6
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-0-3",
+          "exercise": {
+            "id": "synthetic-exercise-3",
+            "name": "侧平举",
+            "weight": 45,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-0-3-0",
+              "date": 1789871400000,
+              "weight": 45,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-0-3-1",
+              "date": 1789871490000,
+              "weight": 45,
+              "reps": 7
+            },
+            {
+              "id": "synthetic-set-0-3-2",
+              "date": 1789871580000,
+              "weight": 45,
+              "reps": 6
+            }
+          ]
+        },
+        {
+          "id": "synthetic-movement-0-4",
+          "exercise": {
+            "id": "synthetic-exercise-4",
+            "name": "坐姿划船",
+            "weight": 50,
+            "unit": "kg",
+            "step": 2.5,
+            "reps": [
+              8,
+              9,
+              10
+            ],
+            "rest": 90,
+            "target": 3
+          },
+          "skipped": false,
+          "sets": [
+            {
+              "id": "synthetic-set-0-4-0",
+              "date": 1789872000000,
+              "weight": 50,
+              "reps": 8
+            },
+            {
+              "id": "synthetic-set-0-4-1",
+              "date": 1789872090000,
+              "weight": 50,
+              "reps": 7
+            },
+            {
+              "id": "synthetic-set-0-4-2",
+              "date": 1789872180000,
+              "weight": 50,
+              "reps": 6
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "active": null,
+  "rest": null
+}
