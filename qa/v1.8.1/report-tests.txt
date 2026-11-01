@@ -1,0 +1,40 @@
+✔ AI report uses all valid history with separate seven-day overview and excludes deleted, active, future and empty sessions (10.274542ms)
+✔ report boundaries respect selected timezone including dates across DST (0.640541ms)
+✔ exercise identity and units stay separate while renamed snapshots remain visible (1.121833ms)
+✔ unresolved identity conflict disables performance comparison (0.536167ms)
+✔ missing recovery data stays null and text never calls recorded sets effective sets (0.424917ms)
+✔ report includes real health records and has no fabricated missing HRV (0.371333ms)
+✔ generating and rendering report leave both source stores unchanged and omit private notes (0.463125ms)
+✔ report pure module has no network, storage or automatic clipboard operation (0.263875ms)
+✔ future set timestamps are omitted instead of shown as existing observations (0.396625ms)
+✔ all history contributes baseline, latest two, coverage, extrema and thirty-day frequency (1.042ms)
+✔ same-weight repetitions compare corresponding recorded sets without confusing extra sets with progress (0.706042ms)
+✔ bodyweight-class records retain 68/73 without assuming either is only body mass (1.060334ms)
+✔ assisted loads have distinct interpretation and unknown loads do not assume external weights (0.892416ms)
+✔ same-name independent IDs display distinct labels and never reveal internal UUIDs (0.54475ms)
+✔ unresolved shared-ID names are isolated, not silently presented as one movement (0.526416ms)
+✔ renamed identity follows exact ID and lineage across older historical snapshots (0.543834ms)
+✔ abnormal session elapsed time is warned once without fabricated training duration or interval rest (0.523375ms)
+✔ three comparable records describe sustained recorded-repetition patterns without diagnosing recovery (1.031875ms)
+✔ invalid and unfinished sessions and malformed sets do not become observations (0.306625ms)
+✔ health trends keep real source-separated values, dates and imported workout heart rate (0.499583ms)
+✔ older imported health is dated as historical and cannot masquerade as current recovery (0.302333ms)
+✔ compact activity values preserve sample coverage and elapsed workout caveats (0.36875ms)
+✔ recent workout heart-rate examples sort timestamps before selecting the latest three (0.536125ms)
+✔ default is five concise sections without repeated raw JSON while detailed text and JSON remain separate (1.273459ms)
+✔ explicit per-session body mass renders 68 plus zero and 68 plus five without rewriting names or source records (10.229333ms)
+✔ today session baseline never retroactively splits a previous training record (0.94125ms)
+✔ missing baseline reports original self-weight-class values without inventing body mass or extra weight (0.683458ms)
+✔ below-bodyweight records are preserved and flagged instead of being converted to assistance (0.672792ms)
+✔ bodyweight baseline cannot cross units or independent same-name exercise identities (0.8455ms)
+✔ same recorded total with different session body masses is not called the same added load (0.541416ms)
+✔ matching confirmed body mass and added load permits factual same-load repetition comparison (0.541458ms)
+✔ current exact identity name stays unchanged while historical names remain traceable in detail (0.619834ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 60.717959

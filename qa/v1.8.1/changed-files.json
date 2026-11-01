@@ -1,0 +1,41 @@
+{
+  "baseline": "8124dff0874e59fb3e2af9d12fa7c93165c80554",
+  "modified": [
+    "CHANGELOG.md",
+    "README.md",
+    "dist/ai-report.js",
+    "dist/app.js",
+    "dist/exercise-meta.js",
+    "dist/health-ui.js",
+    "dist/index.html",
+    "dist/sw.js",
+    "docs/ai-report.js",
+    "docs/app.js",
+    "docs/exercise-meta.js",
+    "docs/health-ui.js",
+    "docs/index.html",
+    "docs/mobile-update.md",
+    "docs/sw.js",
+    "package.json",
+    "tests/ai-report.test.mjs",
+    "tests/exercise-meta.test.mjs",
+    "tests/pwa-cache.test.mjs",
+    "tests/v1.8-health-ui.test.mjs"
+  ],
+  "new": [
+    "docs/v1.8.1-delivery.md",
+    "qa/v1.8.1/baseline-tests.txt",
+    "qa/v1.8.1/baseline.json",
+    "qa/v1.8.1/browser-report-state.txt",
+    "qa/v1.8.1/bulk-preview.png",
+    "qa/v1.8.1/compatibility.json",
+    "qa/v1.8.1/metadata-tests.txt",
+    "qa/v1.8.1/report-breakdown.png",
+    "qa/v1.8.1/report-tests.txt",
+    "qa/v1.8.1/tests-final.txt",
+    "qa/v1.8.1/tests-integration.txt",
+    "qa/v1.8.1/ui-tests.txt",
+    "tests/report-load-breakdown.test.mjs",
+    "tests/v1.8.1-ui.test.mjs"
+  ]
+}

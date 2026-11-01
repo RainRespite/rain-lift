@@ -162,16 +162,17 @@ test('same-weight repetitions compare corresponding recorded sets without confus
  assert.doesNotMatch(reportToText(report), /力量进步了|增加9次.*进步/);
 });
 
-test('confirmed bodyweight movements retain 68/73 as body mass and flag one-session differences', () => {
+test('bodyweight-class records retain 68/73 without assuming either is only body mass', () => {
  const data = initial(), pull = data.plans[0].exercises[0], dragon = data.plans[0].exercises[1];
  pull.name = '引体向上'; dragon.name = '龙悬';
  data.history = [session(pull, '2026-10-01T09:00:00+08:00', {weight: 68, reps: 8}), session(pull, '2026-10-30T09:00:00+08:00', {weight: 73, reps: 8}), setRecords(session(dragon, '2026-10-29T09:00:00+08:00'), [[68, 8], [73, 7]])];
  const before = JSON.stringify(data), report = generateAIReport(data, healthy(), {now: NOW}), text = reportToText(report);
  assert.ok(report.training.exercises.every(exercise => exercise.loadType === 'bodyweight'));
  assert.deepEqual(report.training.exercises.find(exercise => exercise.exerciseID === dragon.id).bodyweightDifferences[0].weights, [68, 73]);
- assert.match(text, /自重动作重量表示自身体重，不是额外负重/);
+ assert.match(text, /自重动作可以额外加重/);
  assert.match(text, /体重增加不直接表示力量进步/);
- assert.match(text, /68\/73kg.*核对差异/);
+ assert.match(text, /68\/73kg.*体重与附加未拆分/);
+ assert.doesNotMatch(text, /不同体重记录|重量表示自身体重，不是额外负重|体重记录 73/);
  assert.doesNotMatch(text, /负重引体|杠杆|器械龙悬|额外负重68/);
  assert.equal(JSON.stringify(data), before);
 });

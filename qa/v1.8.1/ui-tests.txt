@@ -1,0 +1,19 @@
+✔ bulk UI previews all actual names and counts, cancels without changing records, then saves atomically (12.923875ms)
+✔ bulk future-default checkbox may be disabled and later default toggles never rewrite explicit types (1.954875ms)
+✔ bulk storage failure preserves preview, all stores and selected names without false success (1.53975ms)
+✔ conflict UI preview skips identities instead of bulk-resolving or renaming them (1.20025ms)
+✔ stale bulk preview refuses to overwrite a changed metadata page (0.790125ms)
+✔ active bodyweight entry preserves pending input and stores only the explicit current-session baseline (3.240416ms)
+✔ history bodyweight picker lists only actual recorded sessions and never copies current baseline backwards (1.362834ms)
+✔ invalid bodyweight and quota errors keep dialog and raw values, then clear is scoped to selected unit (0.938958ms)
+✔ failed pending training input save prevents bodyweight modal without losing legal input (0.694833ms)
+✔ bodyweight selection uses only real session units and does not convert or carry values across units (1.21725ms)
+✔ complete UI flow records 73, confirms session bodyweight 68, finishes and reports extra 5 with original names and old history intact (3.092333ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.226958

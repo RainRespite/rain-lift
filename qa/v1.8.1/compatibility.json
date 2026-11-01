@@ -1,0 +1,12 @@
+{
+  "trainingAndHealthModulesUnchanged": true,
+  "docsDistIdentical": true,
+  "trainingFormatVersion": 1,
+  "metadataKey": "rainlift.exercise-meta.v1",
+  "metadataOptionalFields": [
+    "defaultLoadType",
+    "bodyweightSessions"
+  ],
+  "automaticUpload": false,
+  "renamesPerformed": false
+}

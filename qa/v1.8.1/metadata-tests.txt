@@ -1,0 +1,31 @@
+✔ confirmed exact bodyweight names are local defaults; unconfirmed and similar names remain unknown (1.747ms)
+✔ same-name distinct IDs and distinct units can be independently configured without inheritance (0.346042ms)
+✔ explicit unknown override persists and suppresses the bodyweight default after reopening (0.081125ms)
+✔ trusted renames preserve defaults and independently stored types without rewriting historical snapshots (0.279208ms)
+✔ unresolved identity conflicts cannot use stored types or confirmed names; split IDs do not inherit metadata (0.261333ms)
+✔ metadata writes never change training, health, original IDs, timestamps, deleted data or v1 backups (0.371792ms)
+✔ quota failures preserve metadata in memory and on disk, including first-write failure (0.113875ms)
+✔ stale metadata pages cannot overwrite changes from another page (0.588667ms)
+✔ corrupt metadata blocks writes and normal exports; raw remains available and explicit restore can recover (0.13475ms)
+✔ metadata exports and replacement restores are independent, validated and preserve a pre-restore copy (0.130542ms)
+✔ replacement restore failure at backup or final write never changes current metadata state (0.097916ms)
+✔ invalid, duplicated, oversized, unknown-version metadata imports fail before any write (1.129083ms)
+✔ unknown metadata IDs remain inactive and editing a missing exercise cannot create entries (0.0745ms)
+✔ bulk external preview preserves explicit settings, trusted bodyweight defaults and conflicts without changing names (0.234083ms)
+✔ bulk save is one metadata write and cannot change either original store on quota or stale failure (0.206ms)
+✔ default external is opt-in, applies to new identities and remains lower priority than overrides and bodyweight defaults (0.076083ms)
+✔ bulk without future defaults leaves later new exercises unconfirmed and repeated batch is stable (0.08275ms)
+✔ confirmed per-session bodyweight splits 68 and 73 into zero and five extra without changing original records (0.204417ms)
+✔ bodyweight is isolated by exact session and unit and is never inferred backwards from another training (0.127375ms)
+✔ a lower recorded weight or a non-bodyweight type is never silently converted into assistance or extra weight (0.103542ms)
+✔ new defaults and bodyweight sessions round-trip in version-one backups and old version-one files remain valid (0.302792ms)
+✔ bodyweight clearing is local to one session/unit and rejects invalid or duplicate persisted values (0.149958ms)
+✔ session baseline writes retain memory and old backups on quota or stale failure (0.088ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46.41275

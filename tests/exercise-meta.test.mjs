@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {KEY,initial,exercise,reviseExercise,start,record,finish,identityConflict,splitExerciseIdentity,parseBackup,Repository} from '../dist/data.js';
 import {HEALTH_KEY} from '../dist/health.js';
-import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,ExerciseMetaRepository,getExerciseLoadType,listExerciseLoadSettings,parseExerciseMetaImport} from '../dist/exercise-meta.js';
+import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,ExerciseMetaRepository,getExerciseLoadType,listExerciseLoadSettings,parseExerciseMetaImport,getBulkExternalPreview,getSessionBodyWeight,getBodyweightSetBreakdown} from '../dist/exercise-meta.js';
 class Storage{
  values=new Map();getItem(key){return this.values.get(key)??null;}
  setItem(key,value){if(this.fail||this.failKey===key)throw Error('quota');this.values.set(key,String(value));}
@@ -92,4 +92,87 @@ test('invalid, duplicated, oversized, unknown-version metadata imports fail befo
 test('unknown metadata IDs remain inactive and editing a missing exercise cannot create entries',()=>{
  const training=fixture(),storage=new Storage(),repo=new ExerciseMetaRepository(storage),backup=repo.export(now);backup.entries.push({exerciseID:'not-present',unit:'kg',loadType:'bodyweight'});repo.restore(backup);
  assert.equal(getExerciseLoadType(training,{id:'not-present',name:'引体向上',unit:'kg'},repo.db),'unknown');const before=storage.getItem(EXERCISE_META_KEY);assert.throws(()=>repo.set(training,{id:'not-present',unit:'kg'},'external'),/找不到/);assert.equal(storage.getItem(EXERCISE_META_KEY),before);
+});
+
+test('bulk external preview preserves explicit settings, trusted bodyweight defaults and conflicts without changing names',()=>{
+ const training=fixture(),storage=new Storage(),repo=new ExerciseMetaRepository(storage);
+ training.plans[1].exercises=[];
+ const explicitUnknown=exercise('我自己更新的名称',20),assisted=exercise('辅助类型动作',20),external=exercise('已有外部动作',40),conflicted=exercise('冲突名称甲',20);
+ training.plans[0].exercises.push(explicitUnknown,assisted,external,conflicted);training.plans[1].exercises.push({...conflicted,name:'冲突名称乙'});
+ repo.set(training,explicitUnknown,'unknown');repo.set(training,assisted,'assisted');repo.set(training,external,'external');
+ const before=JSON.stringify(training),raw=storage.getItem(EXERCISE_META_KEY),preview=getBulkExternalPreview(training,repo.db);
+ assert.deepEqual(preview.candidates.map(item=>item.name),['普通器械']);assert.equal(preview.preservedCount,5);assert.equal(preview.conflictCount,1);
+ assert.equal(storage.getItem(EXERCISE_META_KEY),raw);assert.equal(JSON.stringify(training),before);
+ const result=repo.setUnconfirmedExternal(training,{defaultForNew:true});assert.equal(result.updated,1);assert.equal(result.defaultForNew,true);
+ assert.equal(getExerciseLoadType(training,explicitUnknown,repo.db),'unknown');assert.equal(getExerciseLoadType(training,assisted,repo.db),'assisted');assert.equal(getExerciseLoadType(training,conflicted,repo.db),'unknown');assert.equal(getExerciseLoadType(training,training.plans[0].exercises[0],repo.db),'bodyweight');
+ assert.equal(JSON.stringify(training),before);
+});
+
+test('bulk save is one metadata write and cannot change either original store on quota or stale failure',()=>{
+ const training=fixture(),storage=new Storage(),repo=new ExerciseMetaRepository(storage);const before=JSON.stringify(training);storage.setItem(KEY,before);storage.setItem(HEALTH_KEY,'original-health');
+ let writes=0;const save=storage.setItem.bind(storage);storage.setItem=(key,value)=>{if(key===EXERCISE_META_KEY)writes++;save(key,value);};
+ storage.fail=true;assert.throws(()=>repo.setUnconfirmedExternal(training,{defaultForNew:true}),/quota/);assert.equal(repo.db.defaultLoadType,undefined);assert.equal(repo.db.entries.length,0);assert.equal(storage.getItem(EXERCISE_META_KEY),null);
+ storage.fail=false;repo.setUnconfirmedExternal(training,{defaultForNew:true});assert.equal(writes,2);assert.equal(storage.getItem(KEY),before);assert.equal(storage.getItem(HEALTH_KEY),'original-health');
+ const stale=new ExerciseMetaRepository(storage),other=new ExerciseMetaRepository(storage);other.setDefaultLoadType('unknown');const saved=storage.getItem(EXERCISE_META_KEY);assert.throws(()=>stale.setUnconfirmedExternal(training),/其他页面/);assert.equal(storage.getItem(EXERCISE_META_KEY),saved);
+});
+
+test('default external is opt-in, applies to new identities and remains lower priority than overrides and bodyweight defaults',()=>{
+ const training=fixture(),repo=new ExerciseMetaRepository(new Storage()),custom=exercise('实际新动作名称',30);training.plans[0].exercises.push(custom);
+ assert.equal(getExerciseLoadType(training,custom,repo.db),'unknown');repo.setDefaultLoadType('external');assert.equal(getExerciseLoadType(training,custom,repo.db),'external');
+ assert.equal(getExerciseLoadType(training,training.plans[0].exercises[0],repo.db),'bodyweight');repo.set(training,custom,'unknown');assert.equal(getExerciseLoadType(training,custom,repo.db),'unknown');
+ const sameName=exercise(custom.name,30);training.plans[1].exercises.push(sameName);assert.equal(getExerciseLoadType(training,sameName,repo.db),'external');assert.equal(getExerciseLoadType(training,custom,repo.db),'unknown');
+ repo.setDefaultLoadType('unknown');assert.equal(getExerciseLoadType(training,sameName,repo.db),'unknown');assert.throws(()=>repo.setDefaultLoadType('bodyweight'),/默认/);
+});
+
+test('bulk without future defaults leaves later new exercises unconfirmed and repeated batch is stable',()=>{
+ const training=fixture(),repo=new ExerciseMetaRepository(new Storage());training.plans[1].exercises=[];assert.equal(repo.setUnconfirmedExternal(training).updated,1);assert.equal(repo.db.defaultLoadType,'unknown');assert.equal(repo.setUnconfirmedExternal(training).updated,0);
+ const added=exercise('后续新增',20);training.plans[0].exercises.push(added);assert.equal(getExerciseLoadType(training,added,repo.db),'unknown');assert.throws(()=>repo.setUnconfirmedExternal(training,{defaultForNew:'yes'}),/确认/);
+});
+
+function bodyweightFixture(){
+ const training=initial();training.plans[0].exercises=[exercise('用户当前实际名称',68)];start(training,training.plans[0].id);const movement=training.active.movements[0];record(training,movement.id,8,68);record(training,movement.id,6,73);
+ const storage=new Storage(),repo=new ExerciseMetaRepository(storage);repo.set(training,movement.exercise,'bodyweight');return {training,storage,repo,movement};
+}
+
+test('confirmed per-session bodyweight splits 68 and 73 into zero and five extra without changing original records',()=>{
+ const {training,storage,repo,movement}=bodyweightFixture(),id=training.active.id,before=JSON.stringify(training);storage.setItem(KEY,before);storage.setItem(HEALTH_KEY,'original-health');
+ assert.deepEqual(getBodyweightSetBreakdown(training,movement.exercise,id,73,repo.db),{bodyWeight:null,extraWeight:null,recordedWeight:73,status:'unconfirmed'});
+ repo.setSessionBodyWeight(training,id,'kg',68);
+ assert.deepEqual(getBodyweightSetBreakdown(training,movement.exercise,id,68,repo.db),{bodyWeight:68,extraWeight:0,recordedWeight:68,status:'confirmed'});
+ assert.deepEqual(getBodyweightSetBreakdown(training,movement.exercise,id,73,repo.db),{bodyWeight:68,extraWeight:5,recordedWeight:73,status:'confirmed'});
+ assert.equal(JSON.stringify(training),before);assert.equal(storage.getItem(KEY),before);assert.equal(storage.getItem(HEALTH_KEY),'original-health');
+});
+
+test('bodyweight is isolated by exact session and unit and is never inferred backwards from another training',()=>{
+ const {training,repo,movement}=bodyweightFixture(),oldID=training.active.id;repo.setSessionBodyWeight(training,oldID,'kg',68);finish(training);start(training,training.plans[0].id);const newID=training.active.id;
+ assert.equal(getSessionBodyWeight(training,newID,'kg',repo.db),null);repo.setSessionBodyWeight(training,newID,'kg',70);assert.equal(getSessionBodyWeight(training,oldID,'kg',repo.db),68);assert.equal(getSessionBodyWeight(training,newID,'kg',repo.db),70);
+ assert.equal(getSessionBodyWeight(training,oldID,'lb',repo.db),null);assert.throws(()=>repo.setSessionBodyWeight(training,newID,'lb',150),/单位/);
+ const independent=exercise(movement.exercise.name,68);training.plans[1].exercises.push(independent);assert.equal(getBodyweightSetBreakdown(training,independent,newID,73,repo.db).status,'unconfirmed');
+ training.deletedHistory=[{session:training.history.shift(),deletedAt:Date.now()}];assert.equal(getSessionBodyWeight(training,oldID,'kg',repo.db),null);
+});
+
+test('a lower recorded weight or a non-bodyweight type is never silently converted into assistance or extra weight',()=>{
+ const {training,repo,movement}=bodyweightFixture(),id=training.active.id;repo.setSessionBodyWeight(training,id,'kg',68);
+ assert.deepEqual(getBodyweightSetBreakdown(training,movement.exercise,id,60,repo.db),{bodyWeight:68,extraWeight:null,recordedWeight:60,status:'below_bodyweight'});
+ for(const type of ['external','assisted','unknown']){repo.set(training,movement.exercise,type);assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,73,repo.db).status,'unconfirmed');}
+ repo.set(training,movement.exercise,'bodyweight');assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,NaN,repo.db).status,'unconfirmed');
+ repo.setSessionBodyWeight(training,id,'kg',68.1);assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,73.1,repo.db).extraWeight,5);
+});
+
+test('new defaults and bodyweight sessions round-trip in version-one backups and old version-one files remain valid',()=>{
+ const {training,storage,repo}=bodyweightFixture(),id=training.active.id;repo.setSessionBodyWeight(training,id,'kg',68);repo.setDefaultLoadType('external');const backup=repo.export(now),reopened=new ExerciseMetaRepository(storage);
+ assert.equal(reopened.db.version,1);assert.equal(reopened.db.defaultLoadType,'external');assert.equal(getSessionBodyWeight(training,id,'kg',reopened.db),68);
+ const restored=new ExerciseMetaRepository(new Storage());restored.restore(parseExerciseMetaImport(JSON.stringify(backup)));assert.equal(restored.db.defaultLoadType,'external');assert.equal(getSessionBodyWeight(training,id,'kg',restored.db),68);
+ const old={format:'rainlift-exercise-meta',version:1,entries:[],exportedAt:new Date(now).toISOString()};restored.restore(parseExerciseMetaImport(JSON.stringify(old)));assert.deepEqual(restored.db,{format:'rainlift-exercise-meta',version:1,entries:[]});assert.equal(getSessionBodyWeight(training,id,'kg',restored.db),null);
+});
+
+test('bodyweight clearing is local to one session/unit and rejects invalid or duplicate persisted values',()=>{
+ const {training,repo}=bodyweightFixture(),id=training.active.id;repo.setSessionBodyWeight(training,id,'kg',68);const valid=repo.export(now);repo.setSessionBodyWeight(training,id,'kg',null);assert.equal(getSessionBodyWeight(training,id,'kg',repo.db),null);
+ for(const weight of [0,-1,Infinity,NaN,'68',10001])assert.throws(()=>repo.setSessionBodyWeight(training,id,'kg',weight),/体重/);assert.throws(()=>repo.setSessionBodyWeight(training,'missing','kg',68),/找不到/);
+ for(const change of [{defaultLoadType:'bodyweight'},{bodyweightSessions:[valid.bodyweightSessions[0],valid.bodyweightSessions[0]]},{bodyweightSessions:[{sessionID:id,unit:'kg',bodyWeight:0}]},{bodyweightSessions:{}},{bodyweightSessions:[{sessionID:id,unit:'',bodyWeight:68}]}])assert.throws(()=>parseExerciseMetaImport(JSON.stringify({...valid,...change})));
+});
+
+test('session baseline writes retain memory and old backups on quota or stale failure',()=>{
+ const {training,storage,repo}=bodyweightFixture(),id=training.active.id;repo.setSessionBodyWeight(training,id,'kg',68);const before=structuredClone(repo.db),raw=storage.getItem(EXERCISE_META_KEY);storage.fail=true;assert.throws(()=>repo.setSessionBodyWeight(training,id,'kg',70),/quota/);assert.deepEqual(repo.db,before);assert.equal(storage.getItem(EXERCISE_META_KEY),raw);
+ storage.fail=false;const stale=new ExerciseMetaRepository(storage);repo.setSessionBodyWeight(training,id,'kg',69);const saved=storage.getItem(EXERCISE_META_KEY);assert.throws(()=>stale.setSessionBodyWeight(training,id,'kg',71),/其他页面/);assert.equal(storage.getItem(EXERCISE_META_KEY),saved);
 });

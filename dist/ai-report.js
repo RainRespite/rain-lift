@@ -1,10 +1,10 @@
-import {identityConflict} from './data.js?v=1.8';
-import {healthSummary, healthDateKey} from './health.js?v=1.8';
-import {getExerciseLoadType} from './exercise-meta.js?v=1.8';
+import {identityConflict} from './data.js?v=1.8.1';
+import {healthSummary, healthDateKey} from './health.js?v=1.8.1';
+import {getExerciseLoadType,getBodyweightSetBreakdown} from './exercise-meta.js?v=1.8.1';
 
 const LABELS = {steps: '步数', sleep: '睡眠', resting_heart_rate: '静息心率', hrv: 'HRV SDNN', workout: '导入运动时长'};
 const UNITS = {count: '步', min: '分钟', bpm: '次/分', ms: '毫秒'};
-const LOAD_LABELS = {external: '外部负重', bodyweight: '自身体重', assisted: '辅助负重', unknown: '负重类型尚未确认'};
+const LOAD_LABELS = {external: '外部负重', bodyweight: '自重类（可额外负重）', assisted: '辅助负重', unknown: '负重类型尚未确认'};
 const iso = value => new Date(value).toISOString();
 const round = value => Math.round(value * 100) / 100;
 const validTime = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 253402300799999;
@@ -27,8 +27,9 @@ function describe(performance) {
   sessionID: performance.sessionID, startedAt: performance.sessionStartedAt,
   recordedSetCount: sets.length, maxRecordedWeight: sets.reduce((value, set) => Math.max(value, set.weight), 0),
   minRecordedWeight: sets.reduce((value, set) => Math.min(value, set.weight), Infinity), totalRecordedReps: sets.reduce((sum, set) => sum + set.reps, 0),
-  recordedWeights: [...byWeight.keys()], byWeight: [...byWeight].map(([weight, reps]) => ({weight, reps})),
-  sets: sets.map(({weight, reps}) => ({weight, reps}))
+  recordedWeights: [...byWeight.keys()], byWeight: [...byWeight].map(([weight, reps]) => ({weight, reps,
+   ...(sets.find(set=>set.weight===weight)?.loadBreakdown ? {loadBreakdown: {...sets.find(set=>set.weight===weight).loadBreakdown}} : {})})),
+  sets: sets.map(({weight, reps,loadBreakdown}) => ({weight, reps,...(loadBreakdown ? {loadBreakdown: {...loadBreakdown}} : {})}))
  };
 }
 function compare(previous, latest, loadType) {
@@ -38,19 +39,20 @@ function compare(previous, latest, loadType) {
   const count = Math.min(prior.reps.length, current.reps.length);
   return [{weight: current.weight, previousReps: prior.reps, latestReps: current.reps,
    pairedRepChanges: current.reps.slice(0, count).map((reps, index) => reps - prior.reps[index]),
-   comparableRecordedSetCount: count, sameRecordedSetCount: prior.reps.length === current.reps.length}];
+   comparableRecordedSetCount: count, sameRecordedSetCount: prior.reps.length === current.reps.length,
+   ...(loadType==='bodyweight' ? {sameConfirmedBodyweightAndExtra: prior.loadBreakdown?.status==='confirmed' && current.loadBreakdown?.status==='confirmed' && prior.loadBreakdown.bodyWeight===current.loadBreakdown.bodyWeight && prior.loadBreakdown.extraWeight===current.loadBreakdown.extraWeight} : {})}];
  });
  return {previous, latest, sameWeight, sameRecordedSetCount: previous.recordedSetCount === latest.recordedSetCount,
   maxRecordedWeightDelta: round(latest.maxRecordedWeight - previous.maxRecordedWeight),
   totalRecordedRepsDelta: latest.totalRecordedReps - previous.totalRecordedReps,
-  interpretation: loadType === 'bodyweight' ? '记录重量为自身体重，不是额外负重；体重或总次数变化不能单独判定力量进步。'
+  interpretation: loadType === 'bodyweight' ? '自重类记录可能包含体重和额外负重；仅按当次明确保存的体重基准拆分。未拆分或体重不同的原记录不能当作相同额外负重，记录重量或总次数变化不能单独判定力量进步。'
    : loadType === 'assisted' ? '记录重量为辅助重量；辅助减少通常表示外部帮助减少，不能套用器械加重即进步的解释。动作标准和努力程度未记录，不能单独判定进步。'
    : loadType === 'unknown' ? '负重含义尚未确认；只描述原始重量、次数和组数，不能单独判定进步。'
    : '仅为相同动作、单位及对应记录组的描述性变化；动作标准、努力程度未记录，不能单独判定进步。'};
 }
 function recentPattern(performances) {
  if (performances.length < 3) return null;
- const three = performances.slice(-3).map(describe), signature = row => JSON.stringify(row.sets.map(set => set.weight));
+ const three = performances.slice(-3).map(describe), signature = row => JSON.stringify(row.sets.map(set => [set.weight,set.loadBreakdown?.bodyWeight??null,set.loadBreakdown?.status??null]));
  if (three.some(row => signature(row) !== signature(three[0]))) return null;
  const deltas = three.slice(1).map((row, index) => row.sets.map((set, position) => set.reps - three[index].sets[position].reps));
  let observation = null;
@@ -127,6 +129,7 @@ export function generateAIReport(training, health, {now = Date.now(), timeZone =
     performances.set(key, performance); group.performances.push(performance);
    }
    if (!performance.names.includes(name)) performance.names.push(name);
+   if (group.loadType==='bodyweight') for (const set of sets) set.loadBreakdown=getBodyweightSetBreakdown(training,definition,session.id,set.weight,metadata);
    performance.sets.push(...sets);
   }
   if (!performances.size) { emptySessionsExcluded++; continue; }
@@ -145,7 +148,9 @@ export function generateAIReport(training, health, {now = Date.now(), timeZone =
    comparison: previous && !group.identityUncertain ? compare(previous, latest, group.loadType) : null,
    longTermComparison: previous && !group.identityUncertain ? compare(baseline, latest, group.loadType) : null,
    recentPattern: group.identityUncertain ? null : recentPattern(group.performances),
-   bodyweightDifferences: group.loadType === 'bodyweight' ? group.performances.filter(performance => new Set(performance.sets.map(set => set.weight)).size > 1).map(performance => ({startedAt: performance.sessionStartedAt, weights: [...new Set(performance.sets.map(set => set.weight))]})) : [],
+   // Compatibility field: differences of unresolved original records, not body mass.
+   bodyweightDifferences: group.loadType === 'bodyweight' ? group.performances.filter(performance => performance.sets.some(set=>set.loadBreakdown?.status==='unconfirmed') && new Set(performance.sets.map(set => set.weight)).size > 1).map(performance => ({startedAt: performance.sessionStartedAt, weights: [...new Set(performance.sets.map(set => set.weight))]})) : [],
+   belowBodyweightRecords: group.loadType === 'bodyweight' ? group.performances.flatMap(performance=>performance.sets.filter(set=>set.loadBreakdown?.status==='below_bodyweight').map(set=>({startedAt:performance.sessionStartedAt,weight:set.weight,bodyWeight:set.loadBreakdown.bodyWeight}))) : [],
    historySummary: {firstDate: first, lastDate: last, performanceCount: group.performances.length, recordedSetCount: allSets.length,
     recent7Count: group.performances.filter(performance => dateOf(performance.sessionStartedAt, timeZone) >= firstDate).length,
     recent30Count: group.performances.filter(performance => dateOf(performance.sessionStartedAt, timeZone) >= thirtyDate).length,
@@ -157,7 +162,7 @@ export function generateAIReport(training, health, {now = Date.now(), timeZone =
  // exposing internal identifiers or merging by similar names.
  const labelCounts = new Map();
  for (const group of exercises) {
-  const current = [...(training.plans ?? []).flatMap(plan => plan.exercises), ...(training.active?.movements ?? []).map(movement => movement.exercise)].find(exercise => exercise.id === group.exerciseID && (!group.identityUncertain || group.names.includes(exercise.name)));
+  const current = [...(training.plans ?? []).flatMap(plan => plan.exercises), ...(training.active?.movements ?? []).map(movement => movement.exercise)].find(exercise => exercise.id === group.exerciseID && exercise.unit===group.unit && (!group.identityUncertain || group.names.includes(exercise.name)));
   group.displayName = safeName(current?.name ?? group.names.at(-1));
   labelCounts.set(group.displayName, (labelCounts.get(group.displayName) ?? 0) + 1);
  }
@@ -190,15 +195,22 @@ export function generateAIReport(training, health, {now = Date.now(), timeZone =
 }
 
 function performanceText(performance, exercise, timeZone) {
- const prefix = exercise.loadType === 'bodyweight' ? '体重记录 ' : exercise.loadType === 'assisted' ? '辅助重量 ' : '';
- return `${dateOf(performance.startedAt, timeZone)} ${prefix}${performance.byWeight.map(row => `${row.weight}${safeName(exercise.unit)} × ${row.reps.join('/')}次`).join('；')}（${performance.recordedSetCount}组）`;
+ const unit=safeName(exercise.unit),self=exercise.loadType==='bodyweight';
+ const prefix = self ? '自重类记录重量 ' : exercise.loadType === 'assisted' ? '辅助重量 ' : '';
+ const records=performance.byWeight.map(row=>{
+  const load=row.loadBreakdown;
+  if(self&&load?.status==='confirmed')return `体重${load.bodyWeight}${unit}＋额外负重${load.extraWeight}${unit}（原记录${row.weight}${unit}） × ${row.reps.join('/')}次`;
+  if(self&&load?.status==='below_bodyweight')return `原记录${row.weight}${unit} × ${row.reps.join('/')}次（低于本次体重${load.bodyWeight}${unit}，需核对）`;
+  return `${row.weight}${unit} × ${row.reps.join('/')}次`;
+ }).join('；');
+ return `${dateOf(performance.startedAt, timeZone)} ${prefix}${records}（${performance.recordedSetCount}组）${self&&performance.byWeight.some(row=>!row.loadBreakdown||row.loadBreakdown.status==='unconfirmed')?'；体重与附加未拆分':''}`;
 }
 function comparisonText(comparison, exercise, detailed) {
  const rows = comparison.sameWeight;
- if (!rows.length) return exercise.loadType === 'bodyweight' ? '体重记录不同；结合上述次数与组数观察，不能将体重增加称为力量进步'
+ if (!rows.length) return exercise.loadType === 'bodyweight' ? '原记录重量不同；结合明确的体重/额外负重、次数与组数观察，不能仅由记录重量增加判断力量进步'
   : exercise.loadType === 'assisted' ? '辅助重量与次数组合见记录；辅助增加表示帮助增加，不能按普通加重解释进步'
   : '重量与次数组合见记录；本次无相同记录重量，不能仅按最大重量或总次数判断进步';
- return rows.map(row => `${exercise.loadType === 'bodyweight' ? '同体重记录' : exercise.loadType === 'assisted' ? '同辅助重量' : '同记录重量'}${row.weight}${safeName(exercise.unit)}，对应${row.comparableRecordedSetCount}组次数变化 ${row.pairedRepChanges.map(signed).join('/')}，${row.sameRecordedSetCount ? '该重量组数相同' : '组数不同，不直接比较总次数'}${detailed ? `（上次 ${row.previousReps.join('/')} → 本次 ${row.latestReps.join('/')}次）` : ''}`).join('；');
+ return rows.map(row => `${exercise.loadType === 'bodyweight' ? '同原记录重量' : exercise.loadType === 'assisted' ? '同辅助重量' : '同记录重量'}${row.weight}${safeName(exercise.unit)}，对应${row.comparableRecordedSetCount}组次数变化 ${row.pairedRepChanges.map(signed).join('/')}，${row.sameRecordedSetCount ? '该重量组数相同' : '组数不同，不直接比较总次数'}${exercise.loadType==='bodyweight' ? row.sameConfirmedBodyweightAndExtra?'；体重及额外负重均相同':'；拆分未确认或体重不同，仅对照原记录' : ''}${detailed ? `（上次 ${row.previousReps.join('/')} → 本次 ${row.latestReps.join('/')}次）` : ''}`).join('；');
 }
 function healthLines(health, detailed) {
  if (!health.hasUsableData) return ['尚未导入可用健康数据，本次仅分析训练记录。'];
@@ -237,7 +249,7 @@ export function reportToText(report, {detailed = false} = {}) {
    if (exercise.comparison) lines.push(`  最近对照：${comparisonText(exercise.comparison, exercise, detailed)}。`);
    else lines.push('  身份归属待核对，未合并作进步比较。');
    if (history.performanceCount > 2) {
-    const wording = exercise.loadType === 'bodyweight' ? '体重记录' : exercise.loadType === 'assisted' ? '辅助重量记录' : '记录重量';
+    const wording = exercise.loadType === 'bodyweight' ? '自重类原记录重量' : exercise.loadType === 'assisted' ? '辅助重量记录' : '记录重量';
     lines.push(`  全期${wording}范围${history.minRecordedWeight}–${history.maxRecordedWeight}${safeName(exercise.unit)}${exercise.loadType === 'external' ? `，最高记录${dateOf(exercise.highestRecordedSet.startedAt, timeZone)} ${exercise.highestRecordedSet.weight}${safeName(exercise.unit)}×${exercise.highestRecordedSet.reps}次` : ''}${exercise.recent30Summary ? `；近30天${wording}范围${exercise.recent30Summary.minRecordedWeight}–${exercise.recent30Summary.maxRecordedWeight}${safeName(exercise.unit)}` : '；近30天无有效表现'}。`);
    }
    if (detailed && history.performanceCount > 2 && exercise.longTermComparison) lines.push(`  基线对照：${comparisonText(exercise.longTermComparison, exercise, true)}。`);
@@ -252,8 +264,9 @@ export function reportToText(report, {detailed = false} = {}) {
  lines.push('', '第三部分：训练进步与问题');
  const patterns = training.exercises.filter(exercise => exercise.recentPattern);
  for (const exercise of patterns) lines.push(`- ${exercise.displayName}：最近三次相同记录组数与逐组重量下，对应次数${{unchanged_recorded_reps: '持平', declining_recorded_reps: '连续下降', increasing_recorded_reps: '连续上升'}[exercise.recentPattern.observation]}；这是记录变化，不能单独确认为力量进步、停滞或恢复问题。`);
- for (const exercise of training.exercises.filter(exercise => exercise.bodyweightDifferences.length)) lines.push(`- ${exercise.displayName}：同次出现不同体重记录 ${exercise.bodyweightDifferences.slice(detailed ? 0 : -3).map(row => `${dateOf(row.startedAt, timeZone)} ${row.weights.join('/')}${safeName(exercise.unit)}`).join('；')}${exercise.bodyweightDifferences.length > 3 && !detailed ? `（累计${exercise.bodyweightDifferences.length}次，详见详细报告）` : ''}，请核对差异，原值保留且不猜测原因。`);
- if (training.exercises.some(exercise => exercise.loadType === 'bodyweight')) lines.push('自重动作重量表示自身体重，不是额外负重；体重增加不直接表示力量进步，组数不同不能按总次数判断力量变化。');
+ for (const exercise of training.exercises.filter(exercise => exercise.bodyweightDifferences.length)) lines.push(`- ${exercise.displayName}：同次自重类原记录差异 ${exercise.bodyweightDifferences.slice(detailed ? 0 : -3).map(row => `${dateOf(row.startedAt, timeZone)} ${row.weights.join('/')}${safeName(exercise.unit)}`).join('；')}${exercise.bodyweightDifferences.length > 3 && !detailed ? `（累计${exercise.bodyweightDifferences.length}次，详见详细报告）` : ''}，体重与附加未拆分；请核对记录含义，不猜测差异原因。`);
+ for(const exercise of training.exercises.filter(exercise=>exercise.belowBodyweightRecords?.length))lines.push(`- ${exercise.displayName}：${exercise.belowBodyweightRecords.slice(detailed?0:-3).map(row=>`${dateOf(row.startedAt,timeZone)} 原记录${row.weight}${safeName(exercise.unit)}低于本次体重${row.bodyWeight}${safeName(exercise.unit)}`).join('；')}，请核对；不自动按辅助重量解释。`);
+ if (training.exercises.some(exercise => exercise.loadType === 'bodyweight')) lines.push('自重动作可以额外加重；仅有当次明确体重基准时按“原记录＝体重＋额外负重”拆分，不用当前体重反推旧记录。体重增加不直接表示力量进步，组数不同不能按总次数判断力量变化。');
  if (training.exercises.some(exercise => exercise.loadType === 'assisted')) lines.push('辅助动作的记录重量表示外部帮助；减少辅助与增加器械负重含义不同，仍需结合次数、组数及技术标准判断。');
  if (!patterns.length) lines.push('目前未形成可确认的连续三次同组数、同逐组重量次数模式；按上述最近两次与基线证据分析，不编造长期进步或停滞。');
  lines.push(...report.limitations.slice(1).map(value => `- ${value}`), '', '第四部分：健康与恢复', ...healthLines(report.health, detailed), '', '第五部分：GPT 分析任务', ...report.instructions);
