@@ -4,3 +4,5 @@
 .update-notice{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:12px;right:12px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#10221e;color:#fff;border:1px solid #c8f56c;border-radius:16px;box-shadow:0 4px 20px #0004}.update-notice .primary{padding:10px 16px}
 
 .history-actions{border-top:1px solid var(--line);margin-top:18px;padding-top:12px;text-align:right}.history-actions .text-button{white-space:normal}.settings-card .footnote{overflow-wrap:anywhere}
+
+.health-day{padding:16px 0;border-top:1px solid var(--line)}.health-day h3{font-size:15px;margin:0 0 8px}.health-day p{margin:4px 0;overflow-wrap:anywhere}.health-record{padding:18px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.health-record p{font-size:12px}.health-record .danger{padding-left:0}#health-report-text{font-size:13px;line-height:1.6;white-space:pre-wrap}

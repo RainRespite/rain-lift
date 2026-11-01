@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-31",
+  "baseCommit": "c9a662b4ca1b039c089c871358c1efe81181cf3d",
+  "branch": "codex/health-ai-v1.7",
+  "baselineTests": {
+    "pass": 93,
+    "fail": 0
+  },
+  "finalTests": {
+    "pass": 136,
+    "fail": 0,
+    "skip": 0
+  },
+  "trainingModuleSHA256": "d8df849132d951f3de3694b598a6fc01c4166c0f54cb455c890968a6480e9243",
+  "trainingModuleByteIdenticalToBaseline": true,
+  "runtimeCopiesEqual": {
+    "index.html": true,
+    "app.js": true,
+    "data.js": true,
+    "health.js": true,
+    "health-ui.js": true,
+    "ai-report.js": true,
+    "style.css": true,
+    "sw.js": true,
+    "manifest.webmanifest": true,
+    "icon-192.png": true,
+    "icon-512.png": true
+  },
+  "originalRepositories": {
+    "../rain-lift-history-fix": "clean",
+    "/Users/rain/Desktop/rain-lift": "clean"
+  },
+  "productionPublished": false,
+  "browserQA": "Isolated 127.0.0.1 origin; synthetic fixture only; five health records; one 40kg x8 test set; worker update retained both; origin stopped and cache reload/report/download/copy succeeded; not iPhone/Watch acceptance"
+}

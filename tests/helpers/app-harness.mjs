@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as data from '../../dist/data.js';
+import * as healthUI from '../../dist/health-ui.js';
 
 export class Storage {
   values = new Map();
@@ -16,7 +17,7 @@ const attributes = html => Object.fromEntries([...html.matchAll(/([\w-]+)(?:="([
 
 // Executes the shipped app module and its real event callbacks. This small DOM
 // seam verifies UI state changes and storage, but does not claim browser layout QA.
-export function createAppHarness(database = data.initial(), {storage = new Storage(), globals = {}} = {}) {
+export function createAppHarness(database = data.initial(), {storage = new Storage(), globals = {}, documentProperties = {}} = {}) {
   if (database) storage.setItem(data.KEY, JSON.stringify(database));
   class Element {
     listeners = {};
@@ -70,15 +71,16 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
       return null;
     }
   };
+  Object.assign(document, documentProperties);
   class FormData {
     constructor(form) { this.fields = form.fields; }
     get(name) { return this.fields[name] ?? null; }
     has(name) { return Object.hasOwn(this.fields, name); }
   }
-  const context = vm.createContext({__data: data, document, localStorage: storage, structuredClone, FormData,
+  const context = vm.createContext({__data: data, __healthUI: healthUI, document, localStorage: storage, structuredClone, FormData,
     navigator: {onLine: true}, window: {addEventListener() {}}, matchMedia: () => ({matches: true}),
     setTimeout: () => 1, clearTimeout() {}, setInterval() {}, scrollTo() {}, ...globals});
-  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;');
+  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;');
   vm.runInContext(source, context, {filename: 'dist/app.js'});
   return {
     storage,
@@ -92,6 +94,11 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     action(action, dataset = {}) {
       const button = new Element(Object.fromEntries(Object.entries({action, ...dataset}).map(([key, value]) => ['data-' + key, value])));
       for (const listener of app.listeners.click ?? []) listener({target: button, preventDefault() {}});
+    },
+    async file(id, file) {
+      const target={id,files:[file],value:'selected'};
+      for(const listener of app.listeners.change??[])await listener({target});
+      return target.value;
     },
     modalAction(name) {
       const button = modal.querySelector(`[data-modal="${name}"]`);

@@ -1,0 +1,70 @@
+{
+  "format": "rainlift-health",
+  "version": 1,
+  "timeZone": "Asia/Shanghai",
+  "exportedAt": "2026-10-30T20:00:00+08:00",
+  "records": [
+    {
+      "id": "example-phone-steps-20261030-0800",
+      "type": "steps",
+      "source": {
+        "name": "示例 iPhone"
+      },
+      "start": "2026-10-30T08:00:00+08:00",
+      "end": "2026-10-30T08:10:00+08:00",
+      "unit": "count",
+      "value": 120,
+      "aggregation": "sample"
+    },
+    {
+      "id": "example-sleep-20261030",
+      "type": "sleep",
+      "source": {
+        "name": "示例睡眠来源"
+      },
+      "start": "2026-10-29T23:00:00+08:00",
+      "end": "2026-10-30T06:30:00+08:00",
+      "unit": "min",
+      "value": 450,
+      "aggregation": "sample",
+      "stage": "asleep"
+    },
+    {
+      "id": "example-rhr-20261030",
+      "type": "resting_heart_rate",
+      "source": {
+        "name": "示例心率来源"
+      },
+      "start": "2026-10-30T07:00:00+08:00",
+      "end": "2026-10-30T07:01:00+08:00",
+      "unit": "bpm",
+      "value": 60,
+      "aggregation": "sample"
+    },
+    {
+      "id": "example-hrv-20261030",
+      "type": "hrv",
+      "source": {
+        "name": "示例心率来源"
+      },
+      "start": "2026-10-30T07:02:00+08:00",
+      "end": "2026-10-30T07:03:00+08:00",
+      "unit": "ms",
+      "value": 45,
+      "aggregation": "sample"
+    },
+    {
+      "id": "example-workout-20261030",
+      "type": "workout",
+      "source": {
+        "name": "示例运动来源"
+      },
+      "start": "2026-10-30T18:00:00+08:00",
+      "end": "2026-10-30T18:45:00+08:00",
+      "unit": "min",
+      "value": 40,
+      "aggregation": "sample",
+      "workoutType": "传统力量训练"
+    }
+  ]
+}
