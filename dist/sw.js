@@ -1,5 +1,5 @@
-const CACHE='rainlift-shell-v1.8.1-20261102';
-const ASSETS=['./','./index.html','./style.css?v=1.8.1','./app.js?v=1.8.1','./data.js?v=1.8.1','./health.js?v=1.8.1','./ai-report.js?v=1.8.1','./health-ui.js?v=1.8.1','./exercise-meta.js?v=1.8.1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='rainlift-shell-v1.8.2-20261103-release1';
+const ASSETS=['./','./index.html','./style.css?v=1.8.2','./app.js?v=1.8.2','./data.js?v=1.8.2','./health.js?v=1.8.2','./ai-report.js?v=1.8.2','./health-ui.js?v=1.8.2','./exercise-meta.js?v=1.8.2','./body-profile.js?v=1.8.2','./load.js?v=1.8.2','./backup.js?v=1.8.2','./body-ui.js?v=1.8.2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const assetURL=path=>new URL(path,self.registration.scope).href;
 // Revalidate the complete shell together; a new worker must not repackage old HTTP assets.
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(path=>new Request(assetURL(path),{cache:'reload'})))).then(()=>self.skipWaiting())));

@@ -29,7 +29,7 @@ function exportHarness(training,storage=new Storage()){
 
 test('metadata UI changes are explicit, cancel safely and persist separately after save and reopen',()=>{
  const training=fixture(),storage=new Storage(),health=JSON.stringify({format:'rainlift-health',version:1,timeZone:'Asia/Shanghai',records:[],lastImportAt:null});storage.setItem(HEALTH_KEY,health);const app=createAppHarness(training,{storage}),original=storage.getItem(KEY);app.action('health-open');
- assert.match(app.html,/动作负重类型/);assert.match(app.html,/自重动作（可加重）/);assert.match(app.html,/三份备份分别迁移/);
+ assert.match(app.html,/动作负重类型/);assert.match(app.html,/自重 \+ 额外负重/);assert.match(app.html,/三份备份分别迁移/);
  app.action('health-meta-edit',{index:'0'});app.field('loadType','assisted');assert.equal(storage.getItem(EXERCISE_META_KEY),null);app.modalAction('close');assert.equal(app.modalOpen,false);assert.equal(storage.getItem(EXERCISE_META_KEY),null);
  app.action('health-meta-edit',{index:'0'});app.submit({loadType:'assisted'});assert.equal(app.modalOpen,false);assert.match(app.toast,/已保存/);assert.equal(storage.getItem(KEY),original);assert.equal(storage.getItem(HEALTH_KEY),health);
  const reopened=createAppHarness(null,{storage});reopened.action('health-open');assert.match(reopened.html,/辅助负重/);assert.equal(getExerciseLoadType(training,training.plans[0].exercises[0],JSON.parse(storage.getItem(EXERCISE_META_KEY))),'assisted');

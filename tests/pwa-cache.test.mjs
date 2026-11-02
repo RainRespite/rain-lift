@@ -79,7 +79,7 @@ test('install fetches the complete new shell instead of repackaging a stale HTTP
  const worker = workerHarness();
  await worker.lifecycle('install');
  const paths = [...worker.installed.keys()].map(url => new URL(url).pathname);
- for (const name of ['index.html', 'app.js', 'data.js', 'health.js', 'health-ui.js', 'ai-report.js', 'exercise-meta.js']) assert.ok(paths.some(path => path.endsWith('/' + name)), name + ' should be precached');
+ for (const name of ['index.html', 'app.js', 'data.js', 'health.js', 'health-ui.js', 'ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js']) assert.ok(paths.some(path => path.endsWith('/' + name)), name + ' should be precached');
  for (const response of worker.installed.values()) assert.match(await response.clone().text(), /^network:/);
  assert.equal(worker.skipped, true);
 });
@@ -112,7 +112,7 @@ test('module requests read this worker shell instead of the first matching cache
 test('health and report modules are available from the installed cache without new network requests', async () => {
  const worker = workerHarness();await worker.lifecycle('install');await worker.lifecycle('activate');
  const count=worker.requests.length;
- for(const name of ['health.js','health-ui.js','ai-report.js', 'exercise-meta.js']){
+ for(const name of ['health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js']){
   const url=[...worker.installed.keys()].find(url=>new URL(url).pathname.endsWith('/'+name));
   assert.equal(await worker.request(url),'network:/rain-lift/'+name);
  }
@@ -142,12 +142,12 @@ test('a failed metadata download retains the previous complete app cache',async(
 });
 
 test('Pages and Sites ship identical versioned shells and the worker never clears local data',()=>{
- const names=['index.html','app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','style.css','sw.js','manifest.webmanifest'];
+ const names=['index.html','app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','style.css','sw.js','manifest.webmanifest'];
  for(const name of names)assert.equal(fs.readFileSync(new URL('../docs/'+name,import.meta.url),'utf8'),fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8'),name);
  const sw=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(sw,/localStorage|indexedDB|Clear-Site-Data|\.clear\(/);
- for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.8.1'),name);
- for(const name of ['app.js','health-ui.js','ai-report.js', 'exercise-meta.js']){
-  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.8\.1$/);
+ for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.8.2'),name);
+ for(const name of ['app.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js']){
+  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.8\.2$/);
  }
 });

@@ -86,5 +86,5 @@ test('complete UI flow records 73, confirms session bodyweight 68, finishes and 
  app.run("$('#weight').value='73'");app.action('session-bodyweight');app.submit({bodyWeight:'68',bodyUnit:'kg'});app.action('record',{reps:'8'});
  assert.equal(app.state.active.movements[0].sets[0].weight,73);assert.equal(app.state.active.movements[0].sets[0].reps,8);app.action('finish');app.modalAction('confirm');
  assert.equal(app.state.active,null);assert.equal(app.state.history[0].id,sessionID);assert.deepEqual(app.state.history.slice(1),beforeHistory);assert.deepEqual(app.state.plans[0].exercises.map(e=>e.name),names);
- const raw=storage.getItem(KEY);app.action('health-open');app.action('health-report');assert.match(app.modalHtml,/用户已命名的自重动作/);assert.match(app.modalHtml,/体重68kg＋额外负重5kg（原记录73kg）/);assert.match(app.modalHtml,/体重与附加未拆分/);assert.doesNotMatch(app.modalHtml,/龙悬/);assert.equal(storage.getItem(KEY),raw);assert.equal(storage.getItem(HEALTH_KEY),null);
+ const raw=storage.getItem(KEY);app.action('health-open');app.action('health-report');assert.match(app.modalHtml,/用户已命名的自重动作/);assert.match(app.modalHtml,/体重68kg＋额外负重5kg（原记录73kg）/);assert.match(app.modalHtml,/原始负重含义尚未确认|体重与附加未拆分/);assert.doesNotMatch(app.modalHtml,/龙悬/);assert.equal(storage.getItem(KEY),raw);assert.equal(storage.getItem(HEALTH_KEY),null);
 });

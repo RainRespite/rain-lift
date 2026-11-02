@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import * as data from '../../dist/data.js';
 import * as healthUI from '../../dist/health-ui.js';
+import * as bodyUI from '../../dist/body-ui.js';
 
 export class Storage {
   values = new Map();
   getItem(key) { return this.values.get(key) ?? null; }
+  removeItem(key) { if(this.fail)throw new Error('quota');this.values.delete(key); }
   setItem(key, value) {
     if (this.fail) throw new Error('quota');
     this.values.set(key, String(value));
@@ -34,7 +36,7 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     }
     set innerHTML(html) {
       this.html = html;
-      this.nodes = [...html.matchAll(/<(button|input|select|textarea)\b([^>]*)>(?:([\s\S]*?)<\/\1>)?/g)].map(match => {
+      this.nodes = [...html.matchAll(/<(button|input|select|textarea|p)\b([^>]*)>(?:([\s\S]*?)<\/\1>)?/g)].map(match => {
         const node = new Element(attributes(match[2]));
         node.textContent = decode((match[3] ?? '').replace(/<[^>]*>/g, ''));
         if (match[1] === 'textarea') node.value = decode(match[3] ?? '');
@@ -46,7 +48,7 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
         return node;
       });
       this.form = new Element();
-      for (const node of this.nodes) if (node.attrs.name) this.form.fields[node.attrs.name] = node.value;
+      for (const node of this.nodes) if (node.attrs.name&&(node.attrs.type!=='checkbox'||Object.hasOwn(node.attrs,'checked'))) this.form.fields[node.attrs.name] = node.value;
     }
     get innerHTML() { return this.html ?? ''; }
     querySelectorAll(selector) {
@@ -78,10 +80,10 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     get(name) { return this.fields[name] ?? null; }
     has(name) { return Object.hasOwn(this.fields, name); }
   }
-  const context = vm.createContext({__data: data, __healthUI: healthUI, document, localStorage: storage, structuredClone, FormData,
+  const context = vm.createContext({__data: data, __healthUI: healthUI, __bodyUI:bodyUI, document, localStorage: storage, structuredClone, FormData,
     navigator: {onLine: true}, window: {addEventListener() {}}, matchMedia: () => ({matches: true}),
     setTimeout: () => 1, clearTimeout() {}, setInterval() {}, scrollTo() {}, ...globals});
-  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;');
+  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;').replace(/import \{([^}]+)\} from '[^']*body-ui[^']+';/, 'const {$1} = __bodyUI;');
   vm.runInContext(source, context, {filename: 'dist/app.js'});
   return {
     storage,

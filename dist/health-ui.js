@@ -1,13 +1,13 @@
-import {HEALTH_KEY,HEALTH_MAX_BYTES,HealthRepository,parseHealthImport,healthSummary,healthRecordKey} from './health.js?v=1.8.1';
-import {generateAIReport,reportToText} from './ai-report.js?v=1.8.1';
-import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,LOAD_TYPES,ExerciseMetaRepository,listExerciseLoadSettings,parseExerciseMetaImport,getBulkExternalPreview,getSessionBodyWeight} from './exercise-meta.js?v=1.8.1';
+import {HEALTH_KEY,HEALTH_MAX_BYTES,HealthRepository,parseHealthImport,healthSummary,healthRecordKey} from './health.js?v=1.8.2';
+import {generateAIReport,reportToText} from './ai-report.js?v=1.8.2';
+import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,LOAD_TYPES,ExerciseMetaRepository,listExerciseLoadSettings,parseExerciseMetaImport,getBulkExternalPreview,getSessionBodyWeight} from './exercise-meta.js?v=1.8.2';
 
 const labels={steps:'步数',sleep:'有效睡眠',resting_heart_rate:'静息心率',hrv:'HRV（SDNN）',workout:'运动时长'};
 const units={count:'步',min:'分钟',bpm:'次/分',ms:'毫秒'};
 const stages={asleep:'睡着（阶段未知）',core:'核心睡眠',deep:'深度睡眠',rem:'REM',awake:'清醒',in_bed:'在床',unspecified:'未知状态'};
 
 // Local-only UI: no network capability or AI credentials are used here.
-export function createHealthUI({storage,training,trainingError,esc,fmt,showDialog,confirmAction,toast,render,download,go,query,navigator}){
+export function createHealthUI({storage,profile=()=>null,openModernSession=null,training,trainingError,esc,fmt,showDialog,confirmAction,toast,render,download,go,query,navigator}){
  let health=new HealthRepository(storage),metadata=new ExerciseMetaRepository(storage),report=null,recordPage=0,importKind='health';
  const timestamp=value=>new Date(value).toLocaleString('zh-CN',{timeZone:health.db.timeZone,hour12:false});
  const fail=error=>toast('健康数据操作失败，训练记录未改变：'+error.message);
@@ -21,7 +21,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
  }
  function metadataCard(){
   const items=listExerciseLoadSettings(training(),metadata.db),preview=getBulkExternalPreview(training(),metadata.db);
-  return `<section class="settings-card"><h2>动作负重类型</h2><p>大多数动作可一次设为外部负重，少数自重或辅助动作单独调整。只设置类型，动作名称、编号和原始记录保持不变。</p>${metadata.loadError?`<aside class="warning">${esc(metadata.loadError)}</aside>`:''}<button class="primary wide" data-action="health-meta-bulk" ${metadata.writable?'':'disabled'}>一键设置未确认动作</button><p class="footnote">可设置 ${preview.candidates.length} 个；保留已有设置及自重、辅助类型，跳过身份冲突。</p><div class="status-row"><b>未单独设置的动作默认</b><span>${metadata.db.defaultLoadType==='external'?'外部负重':'尚未确认'}</span></div><button class="outline wide" data-action="health-meta-default" ${metadata.writable?'':'disabled'}>${metadata.db.defaultLoadType==='external'?'关闭默认外部负重':'启用默认外部负重'}</button><p class="footnote">默认仅用于未单独设置的动作；显式设置、自重及冲突保护优先。关闭默认不会撤销已经批量保存的类型。</p><div class="editor-list">${items.map((item,index)=>`<div class="editor-item"><div><b>${esc(item.label??item.name)}</b><small>${esc(LOAD_TYPES[item.loadType])} · ${esc(item.unit||'未设置单位')}${item.identityUncertain?' · 请先整理历史关联':''}</small></div><button class="outline" data-action="health-meta-edit" data-index="${index}" ${!metadata.writable||item.identityUncertain?'disabled':''}>设置类型</button></div>`).join('')||'<p>暂无动作</p>'}</div><p class="footnote">自重动作也可额外加重。仅按这次训练明确保存的体重拆分；没有本次体重时不推断。</p><button class="outline wide" data-action="health-bodyweight-picker" ${metadata.writable?'':'disabled'}>设置某次训练的体重 / 自重加重</button><button class="outline wide" data-action="health-meta-export" ${metadata.writable?'':'disabled'}>导出动作类型备份</button><button class="outline wide" data-action="health-meta-import">导入动作类型备份</button><button class="text-button" data-action="health-meta-previous">导出类型恢复前副本</button>${metadata.loadError?'<button class="outline wide" data-action="health-meta-raw">导出类型原始文件</button>':''}<p class="footnote">动作类型备份包含默认规则和本次体重，请用1.8.1及以上版本恢复。换设备时，训练、健康和动作类型三份备份分别迁移；训练旧备份格式保持不变。</p></section>`;
+  return `<section class="settings-card"><h2>动作负重类型</h2><p>大多数动作可一次设为外部负重，少数自重或辅助动作单独调整。类型设置用于后续新组；既有组保留原语义，名称与原始记录保持不变。</p>${metadata.loadError?`<aside class="warning">${esc(metadata.loadError)}</aside>`:''}<button class="primary wide" data-action="health-meta-bulk" ${metadata.writable?'':'disabled'}>一键设置未确认动作</button><p class="footnote">可设置 ${preview.candidates.length} 个；保留已有设置及自重、辅助类型，跳过身份冲突。</p><div class="status-row"><b>未单独设置的动作默认</b><span>${metadata.db.defaultLoadType==='external'?'外部负重':'尚未确认'}</span></div><button class="outline wide" data-action="health-meta-default" ${metadata.writable?'':'disabled'}>${metadata.db.defaultLoadType==='external'?'关闭默认外部负重':'启用默认外部负重'}</button><p class="footnote">默认仅用于未单独设置的动作；显式设置、自重及冲突保护优先。关闭默认不会撤销已经批量保存的类型。</p><div class="editor-list">${items.map((item,index)=>`<div class="editor-item"><div><b>${esc(item.label??item.name)}</b><small>${esc(LOAD_TYPES[item.loadType])} · ${esc(item.unit||'未设置单位')}${item.identityUncertain?' · 请先整理历史关联':''}</small></div><button class="outline" data-action="health-meta-edit" data-index="${index}" ${!metadata.writable||item.identityUncertain?'disabled':''}>设置类型</button></div>`).join('')||'<p>暂无动作</p>'}</div><p class="footnote">自重动作也可额外加重。新版使用档案参考值及组内额外负重；旧版仅按该次明确确认的体重拆分。</p><button class="outline wide" data-action="health-bodyweight-picker" ${metadata.writable?'':'disabled'}>设置某次训练的体重 / 自重加重</button><button class="outline wide" data-action="health-meta-export" ${metadata.writable?'':'disabled'}>导出动作类型备份</button><button class="outline wide" data-action="health-meta-import">导入动作类型备份</button><button class="text-button" data-action="health-meta-previous">导出类型恢复前副本</button>${metadata.loadError?'<button class="outline wide" data-action="health-meta-raw">导出类型原始文件</button>':''}<p class="footnote">动作类型备份包含默认规则和本次体重，包含新版类型快照时请用1.8.2及以上恢复。换设备时，训练、健康和动作类型三份备份分别迁移；推荐在设置中导出完整备份，包含身体档案、新版组语义及全部分区。</p></section>`;
  }
  function bulkMetadataDialog(){
   try{
@@ -37,7 +37,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
    refresh();if(!metadata.writable)throw Error(metadata.loadError);
    const next=metadata.db.defaultLoadType==='external'?'unknown':'external';
    showDialog(next==='external'?'启用默认外部负重':'关闭默认外部负重',`<p>${next==='external'?'未单独设置的动作默认按外部负重解释。已有自重、辅助、显式未确认和身份冲突保护继续保留。':'未单独设置的动作回到尚未确认。已经单独或批量保存的动作类型不受影响。'}</p><button type="button" class="outline wide" data-modal="cancel">取消</button>`,()=>{
-    try{metadata.setDefaultLoadType(next);report=null;query('#modal').close();render();toast(next==='external'?'已启用默认外部负重':'已关闭默认外部负重');}catch(error){toast('默认类型未保存：'+error.message);}
+    try{metadata.setDefaultLoadType(next,training());report=null;query('#modal').close();render();toast(next==='external'?'已启用默认外部负重':'已关闭默认外部负重');}catch(error){toast('默认类型未保存：'+error.message);}
    },{cancel:()=>query('#modal').close()});
   }catch(error){toast('无法设置默认类型：'+error.message);}
  }
@@ -54,6 +54,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
    refresh();if(!metadata.writable)throw Error(metadata.loadError);if(trainingError())throw Error(trainingError());
    const db=training(),session=db.active?.id===sessionID?db.active:(db.history??[]).find(item=>item.id===sessionID);
    if(!session)throw Error('这次训练已不存在，请重新选择。');
+   if(session.loadSchemaVersion===1&&openModernSession){openModernSession(sessionID);return;}
    const sessionUnits=[...new Set(session.movements.map(m=>m.exercise.unit).filter(unit=>typeof unit==='string'&&unit.trim()))];if(!sessionUnits.length)throw Error('这次训练的动作尚未设置单位，请先确认单位再设置体重。');
    const initialUnit=sessionUnits.includes('kg')?'kg':sessionUnits[0],saved=getSessionBodyWeight(db,sessionID,initialUnit,metadata.db);
    showDialog('本次体重 / 自重加重',`<p>${esc(timestamp(session.started))} · ${esc(session.name)}</p><label>体重单位<select name="bodyUnit">${sessionUnits.map(unit=>`<option value="${esc(unit)}" ${unit===initialUnit?'selected':''}>${esc(unit)}</option>`).join('')}</select></label><label>这次训练已确认的体重<input name="bodyWeight" type="number" inputmode="decimal" min="0.01" max="10000" step="any" value="${saved==null?'':esc(saved)}" placeholder="例如 68" required></label><p>保存即确认：这次训练的自重动作，原记录重量 = 体重 + 额外负重。例如本次体重 68、原记录 73，报告说明额外负重 5。</p><p class="footnote">仅应用这次训练、这个单位，不改原记录或动作名称，不从其他训练复制体重，不换算单位。低于体重的记录只提示核对。</p><button type="button" class="outline wide" data-modal="clear">移除本次这个单位的体重设置</button><button type="button" class="outline wide" data-modal="cancel">取消</button>`,fd=>{
@@ -69,7 +70,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
   try{
    refresh();if(!metadata.writable)throw Error(metadata.loadError);
    const item=listExerciseLoadSettings(training(),metadata.db)[Number(index)];if(!item)throw Error('找不到这个动作，请重新打开页面。');
-   showDialog('设置动作负重类型',`<p>${esc(item.label??item.name)} · ${esc(item.unit||'未设置单位')}</p><label>负重类型<select name="loadType">${Object.entries(LOAD_TYPES).map(([value,label])=>`<option value="${value}" ${item.loadType===value?'selected':''}>${esc(label)}</option>`).join('')}</select></label><p class="footnote">自重动作也可额外加重；按这次明确保存的体重拆分，未设置本次体重时不猜测。辅助负重表示外部帮助；无法确认则选择尚未确认。此设置不改写训练组或名称。</p>`,fd=>{
+   showDialog('设置动作负重类型',`<p>${esc(item.label??item.name)} · ${esc(item.unit||'未设置单位')}</p><label>负重类型<select name="loadType">${Object.entries(LOAD_TYPES).map(([value,label])=>`<option value="${value}" ${item.loadType===value?'selected':''}>${esc(label)}</option>`).join('')}</select></label><p class="footnote">新版自重组只输入额外负重，采用固定体重快照。旧记录只按明确确认的本次体重解释。类型更改用于后续新组；辅助负重表示外部帮助，无法确认可保留尚未确认。</p>`,fd=>{
     try{metadata.set(training(),{id:item.exerciseID??item.id,unit:item.unit,name:item.name},String(fd.get('loadType')));report=null;query('#modal').close();render();toast('动作负重类型已保存');}catch(error){toast('动作类型未保存：'+error.message);}
    });
   }catch(error){toast('无法设置动作类型：'+error.message);}
@@ -99,7 +100,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
  function reportDialog(){
   try{
    refresh();if(health.loadError||metadata.loadError||trainingError())throw Error(health.loadError||metadata.loadError||trainingError());
-   report=generateAIReport(training(),health.db,{metadata:metadata.db});
+   report=generateAIReport(training(),health.db,{metadata:metadata.db,profile:profile()});
    const compact=reportToText(report);
    const preview=(detailed=false)=>{
     const text=reportToText(report,{detailed});
@@ -123,7 +124,7 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
   else if(name==='health-meta-default')defaultMetadataDialog();
   else if(name==='health-bodyweight-picker')sessionBodyWeightPicker();
   else if(name==='health-meta-export'||name==='health-meta-raw'||name==='health-meta-previous'){
-   try{refresh();const raw=name==='health-meta-export'?JSON.stringify(metadata.export(),null,2):storage.getItem(EXERCISE_META_KEY+(name==='health-meta-previous'?'.before-restore':''));if(raw==null)throw Error('还没有可导出的动作类型副本');download(raw,'RainLift-exercise-types'+(name==='health-meta-previous'?'-before-restore':name==='health-meta-raw'?'-raw':'')+'.json');}catch(error){toast('动作类型导出失败：'+error.message);}
+   try{refresh();const raw=name==='health-meta-export'?JSON.stringify(metadata.export(),null,2):storage.getItem(name==='health-meta-previous'?EXERCISE_META_KEY+'.before-restore':metadata.key);if(raw==null)throw Error('还没有可导出的动作类型副本');download(raw,'RainLift-exercise-types'+(name==='health-meta-previous'?'-before-restore':name==='health-meta-raw'?'-raw':'')+'.json');}catch(error){toast('动作类型导出失败：'+error.message);}
   }
   else if(name==='health-report')reportDialog();
   else if(name==='health-next'||name==='health-prev'){recordPage+=name==='health-next'?1:-1;recordPage=Math.max(0,recordPage);render();}
@@ -133,5 +134,5 @@ export function createHealthUI({storage,training,trainingError,esc,fmt,showDialo
   }
   return true;
  }
- return {page,action,importFile,refresh,openSessionBodyWeight};
+ return {page,action,importFile,refresh,openSessionBodyWeight,getMetadata(){refresh();if(!metadata.writable)throw Error(metadata.loadError);return metadata.db;}};
 }

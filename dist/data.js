@@ -1,4 +1,6 @@
+import {validateLoad,validateSnapshot} from './load.js?v=1.8.2';
 export const KEY='rainlift.web.v1';
+export const TRAINING_V2_KEY='rainlift.web.v2';
 export const uid=()=>crypto.randomUUID();
 export const exercise=(name='新动作',weight=20,reps=[8,9,10],rest=90)=>({id:uid(),name,weight,unit:'kg',step:2.5,reps,rest,target:3});
 export function initial(){return {format:'rainlift-web',version:1,plans:[{id:uid(),name:'拉 · 背部与二头',exercises:[exercise('宽距高位下拉',40),exercise('坐姿划船',35),exercise('哑铃弯举',10,[10,12,15],60)]},{id:uid(),name:'推 · 胸肩与三头',exercises:[exercise('卧推',40,[8,9,10],120),exercise('哑铃肩推',12.5),exercise('侧平举',5,[12,15,20],60)]}],history:[],active:null,rest:null};}
@@ -8,10 +10,10 @@ const text=x=>typeof x==='string'&&x.trim().length>0&&x.length<=200;
 const ids=xs=>Array.isArray(xs)&&xs.every(x=>text(x.id))&&new Set(xs.map(x=>x.id)).size===xs.length;
 export function validate(d){
  const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999));
- const set=s=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15);
- const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(set)&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
- const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement);
- if(!d||d.format!=='rainlift-web'||d.version!==1||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
+ const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit));
+ const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(s=>set(s,m.exercise.unit))&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
+ const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement)&&(s.loadSchemaVersion===undefined||d.version===2&&s.loadSchemaVersion===1&&validateSnapshot(s.bodyWeightSnapshot)&&s.movements.every(m=>m.sets.every(set=>set.load)));
+ if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
  if(d.rest!=null&&(!text(d.rest.setID)||!text(d.rest.name)||!finite(d.rest.end,0,1e15)||!d.active?.movements.some(m=>m.sets.some(s=>s.id===d.rest.setID))))throw Error('备份中的休息计时无效。');
  return d;
 }
@@ -75,12 +77,12 @@ export function reviseExercise(d,original,changes,mode='rename'){
  }
  return updated;
 }
-export function previous(d,id){if(identityConflict(d,id))return;return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length);}
-export function suggested(d,m){return m.overrideWeight??previous(d,m.exercise.id)?.sets[m.sets.length]?.weight??m.sets.at(-1)?.weight??m.exercise.weight;}
-export function start(d,planID){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID);if(!p?.exercises.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:p.exercises.map(e=>({id:uid(),exercise:structuredClone(e),sets:[],skipped:false}))};}
-export function record(d,id,reps,weight,timed=true,now=Date.now()){
+export function previous(d,id,unit=null){if(identityConflict(d,id))return;return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length&&(unit===null||m.exercise.unit===unit));}
+export function suggested(d,m){return m.overrideWeight??previous(d,m.exercise.id,m.exercise.unit)?.sets[m.sets.length]?.weight??m.sets.at(-1)?.weight??m.exercise.weight;}
+export function start(d,planID,snapshot){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID);if(!p?.exercises.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:p.exercises.map(e=>({id:uid(),exercise:structuredClone(e),sets:[],skipped:false}))};if(snapshot){validateSnapshot(snapshot);d.version=2;d.active.loadSchemaVersion=1;d.active.bodyWeightSnapshot=structuredClone(snapshot);}}
+export function record(d,id,reps,weight,timed=true,now=Date.now(),load){
  const m=d.active?.movements.find(m=>m.id===id);if(!m)throw Error('请先选择动作。');if(!integer(reps,1,999)||!finite(weight,0,10000))throw Error('请填写有效重量和次数。');
- const s={id:uid(),weight,reps,date:now};m.sets.push(s);m.skipped=false;if(timed)d.rest={setID:s.id,name:m.exercise.name,end:now+m.exercise.rest*1000};return s;
+ const s={id:uid(),weight,reps,date:now};if(load){validateLoad(load,weight,m.exercise.unit);s.load=structuredClone(load);d.version=2;}else if(d.active.loadSchemaVersion===1)throw Error('新版训练需要明确的组负重模式。');m.sets.push(s);m.skipped=false;if(timed)d.rest={setID:s.id,name:m.exercise.name,end:now+m.exercise.rest*1000};return s;
 }
 export function removeSet(d,mid,sid,sessionID=null){const session=sessionID?d.history.find(s=>s.id===sessionID):d.active;const m=session?.movements.find(m=>m.id===mid);if(!m)throw Error('找不到该动作。');m.sets=m.sets.filter(s=>s.id!==sid);if(d.rest?.setID===sid)d.rest=null;}
 export function deleteHistory(d,sessionID,now=Date.now()){
@@ -104,21 +106,22 @@ export function finish(d){
 }
 export const remaining=(rest,now=Date.now())=>rest?Math.max(0,Math.ceil((rest.end-now)/1000)):0;
 export class Repository{
- constructor(storage){this.storage=storage;this.writable=true;try{const raw=storage.getItem(KEY);this.db=raw?validate(JSON.parse(raw)):initial();}catch(e){this.db={format:'rainlift-web',version:1,plans:[],history:[],active:null,rest:null};this.writable=false;this.loadError='无法读取本地记录。为避免覆盖原数据，已停止写入。请先导出原始文件，或从备份恢复。';}}
+ constructor(storage){this.storage=storage;this.writable=true;this.raw=null;this.key=KEY;try{this.key=storage.getItem(TRAINING_V2_KEY)!==null?TRAINING_V2_KEY:KEY;const raw=storage.getItem(this.key);this.raw=raw;this.db=raw?validate(JSON.parse(raw)):initial();}catch(e){this.db={format:'rainlift-web',version:1,plans:[],history:[],active:null,rest:null};this.writable=false;this.loadError='无法读取本地记录。为避免覆盖原数据，已停止写入。请先导出原始文件，或从备份恢复。';}}
+ assertCurrent(){if((this.key===KEY&&this.storage.getItem(TRAINING_V2_KEY)!==null)||this.storage.getItem(this.key)!==this.raw)throw Error('训练已被其他页面修改，请重新打开后操作。');}
  change(fn){
-  if(!this.writable)throw Error(this.loadError);
+  if(!this.writable)throw Error(this.loadError);this.assertCurrent();
   const next=structuredClone(this.db),result=fn(next);validate(next);
   // Removing a plan or ending a workout must not silently make an unresolved
   // shared ID look valid again. Only the explicit repair path can resolve it.
   const ids=new Set([...this.db.plans.flatMap(p=>p.exercises.map(e=>e.id)),...(this.db.active?.movements.map(m=>m.exercise.id)??[])]);
   for(const id of ids)if(identityConflict(this.db,id)&&!identityConflict(next,id))throw Error('请先整理旧动作的历史归属，再移除动作、删除计划或结束训练。');
-  this.storage.setItem(KEY,JSON.stringify(next));this.db=next;return result;
+  const raw=JSON.stringify(next);const key=this.key===TRAINING_V2_KEY||next.version===2?TRAINING_V2_KEY:KEY;this.storage.setItem(key,raw);this.key=key;this.raw=raw;this.db=next;return result;
  }
  repairIdentity(fn){
-  if(!this.writable)throw Error(this.loadError);
+  if(!this.writable)throw Error(this.loadError);this.assertCurrent();
   const next=structuredClone(this.db),result=fn(next);validate(next);const serialized=JSON.stringify(next);
-  if(this.storage.getItem(KEY+'.before-identity-repair')==null)this.storage.setItem(KEY+'.before-identity-repair',this.storage.getItem(KEY)??JSON.stringify(this.db));
-  this.storage.setItem(KEY,serialized);this.db=next;return result;
+  if(this.storage.getItem(KEY+'.before-identity-repair')==null)this.storage.setItem(KEY+'.before-identity-repair',this.storage.getItem(this.key)??JSON.stringify(this.db));
+  this.storage.setItem(this.key,serialized);this.raw=serialized;this.db=next;return result;
  }
- restore(d){validate(d);const old=this.storage.getItem(KEY);if(old)this.storage.setItem(KEY+'.before-restore',old);this.storage.setItem(KEY,JSON.stringify(d));this.db=d;this.writable=true;this.loadError=null;}
+ restore(d){validate(d);this.assertCurrent();const old=this.storage.getItem(this.key);if(old)this.storage.setItem(KEY+'.before-restore',old);const raw=JSON.stringify(d);const key=this.key===TRAINING_V2_KEY||d.version===2?TRAINING_V2_KEY:KEY;this.storage.setItem(key,raw);this.key=key;this.raw=raw;this.db=d;this.writable=true;this.loadError=null;}
 }

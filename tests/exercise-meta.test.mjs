@@ -151,10 +151,10 @@ test('bodyweight is isolated by exact session and unit and is never inferred bac
  training.deletedHistory=[{session:training.history.shift(),deletedAt:Date.now()}];assert.equal(getSessionBodyWeight(training,oldID,'kg',repo.db),null);
 });
 
-test('a lower recorded weight or a non-bodyweight type is never silently converted into assistance or extra weight',()=>{
+test('lower old values are flagged and future type edits retain explicit legacy confirmation',()=>{
  const {training,repo,movement}=bodyweightFixture(),id=training.active.id;repo.setSessionBodyWeight(training,id,'kg',68);
  assert.deepEqual(getBodyweightSetBreakdown(training,movement.exercise,id,60,repo.db),{bodyWeight:68,extraWeight:null,recordedWeight:60,status:'below_bodyweight'});
- for(const type of ['external','assisted','unknown']){repo.set(training,movement.exercise,type);assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,73,repo.db).status,'unconfirmed');}
+ for(const type of ['external','assisted','unknown']){repo.set(training,movement.exercise,type);assert.equal(getExerciseLoadType(training,movement.exercise,repo.db),type);assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,73,repo.db).status,'confirmed');}
  repo.set(training,movement.exercise,'bodyweight');assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,NaN,repo.db).status,'unconfirmed');
  repo.setSessionBodyWeight(training,id,'kg',68.1);assert.equal(getBodyweightSetBreakdown(training,movement.exercise,id,73.1,repo.db).extraWeight,5);
 });

@@ -4,6 +4,7 @@
 
 | 版本 | 主要工作及版本位置 | 实际测试记录 | 发布与设备验证 |
 | --- | --- | --- | --- |
+| v1.8.2 | 按需体重、固定快照、自重额外负重与完整备份；[交付详情](v1.8.2-delivery.md)，分支 `codex/body-profile-v1.8.2` | 基线 [221 项](../qa/v1.8.2/baseline-tests.txt)，最终 [255 项通过](../qa/v1.8.2/tests-final.txt)；[资源校验](../qa/v1.8.2/compatibility.json) | 用户已授权原手机入口发布；状态见 [发布记录](v1.8.2-release.md)。隔离桌面合成浏览器和文件恢复通过，iPhone 真机待验收 |
 | v1.8.1 | 批量设置负重类型、明确当次体重及自重加重解释；[交付详情](v1.8.1-delivery.md)，代码标签 `v1.8.1`、提交 `044cd86` | 实施前 [192 项](../qa/v1.8.1/baseline-tests.txt)，最终 [221 项通过、0 失败](../qa/v1.8.1/tests-final.txt)；另有合成数据的 [浏览器结果](../qa/v1.8.1/browser-report-state.txt)和截图 | [Pages 部署记录](v1.8.1-pages-verification.json)：工作流成功，12 个线上文件与发布版本一致；iPhone 真机验收未记录 |
 | v1.8 | 全历史报告、动作类型、指定位置排序；[审计](v1.8-audit.md)、[交付详情](v1.8-delivery.md)，标签 `v1.8.0`，手机入口恢复点 `v1.8.0-pages-20261102` | 实施前 [136 项](../qa/v1.8/baseline-tests-v1.7.txt)，最终 [192 项通过、0 失败](../qa/v1.8/tests-final.txt)；[浏览器验证](../qa/v1.8/browser-validation.md) | [手机入口发布经过](pages-release-20261102.md)；桌面模拟不等于 iPhone 真机验收 |
 | v1.7 | 本地健康导入及手动 AI 报告；[交付详情](v1.7-delivery.md)，标签 `v1.7.0`、提交 `ab19095` | [136 项通过、0 失败](../qa/tests-v1.7-release-20261101.txt)；实施前 v1.6 基线 [93 项通过](../qa/tests-v1.6.txt) | 交付记录包含本地浏览器验证及当时未完成事项；历史快照中的发布状态只反映其记录时点 |

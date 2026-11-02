@@ -1,0 +1,26 @@
+{
+  "staticFiles": 16,
+  "docsDistMatch": true,
+  "syntaxCheck": true,
+  "oldV181ReaderRefusesNewTraining": true,
+  "unchangedOldHistory": true,
+  "healthCoreUnchanged": true,
+  "sha256": {
+    "ai-report.js": "1542054dc6c7f9f03f27e2211536fb6205d662475af3a5b4e16f201fbbf73a92",
+    "app.js": "c55c65180dd10d716b5e9bbe7de29cff315d6da9c20c0882fd97df36300f088e",
+    "backup.js": "7b7f89eca2492a2423f0f47a0e31ce556cee87cbc5831d54ee51777805348e2f",
+    "body-profile.js": "3e3aaf039e3049b852c9bfdc662447a084f7b837d3c3571e6075f47035607ecb",
+    "body-ui.js": "2d2d7683a1d377560aca70103efd4259d218bc897ca08fe864decb78ff71e28f",
+    "data.js": "ba6ee8d17142f7dfe9a44284cb6a5f0b09ea3ba9e8835cca57034e1e10d740c9",
+    "exercise-meta.js": "a5eb56a46b2a98b589ef0bcf45d80ebfdb4cbdf6ec5985e56f32aa55668107c6",
+    "health-ui.js": "84227661d996346700baf1d86d2bb3f142354ba64687a84023a42091eede05fd",
+    "health.js": "e28a7568991631455e124dbeb7ac942907cae7c3c4bd7f37661244288ddc0f68",
+    "icon-192.png": "48da6eff1d9f50d3f659a03683e6f959336c57d2ef71d0e843940f3794ceb9f6",
+    "icon-512.png": "815cb9b0301524f81bdaa94ab165fa983003d1a0360696bab2610672fcdcf7fb",
+    "index.html": "6fbe7d179edd321dfb47e4e6aed61cfa7d4d702d98c0b56f408526007c7b10a0",
+    "load.js": "42a8d4cf1359034bbc64d04fefc7e227f0a633475c62f3eee2cda9f13e561de8",
+    "manifest.webmanifest": "c8c0425d22b40ca25c36e32065c03a2f17a8fbdfc7271a2b10fa5e0c80f6e14e",
+    "style.css": "fca406f99a3c40a95f7e6588d62dbd7d243c71ac0b553041881e13cb20ba93d1",
+    "sw.js": "54b65d0cb54318e0bb30dc21e8f957f13f7fde8e03b1135f97c8d2dd0c4dac79"
+  }
+}
