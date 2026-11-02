@@ -1,0 +1,76 @@
+{
+  "version": "1.8.1",
+  "date": "2026-11-02",
+  "origin": "https://rainrespite.github.io/rain-lift/",
+  "commit": "044cd860c97f2d7b2e20ed84c8a3d747c9a2926d",
+  "workflow": "https://github.com/RainRespite/rain-lift/actions/runs/41336194777",
+  "conclusion": "success",
+  "tests": {
+    "baseline": 192,
+    "final": 221,
+    "failed": 0
+  },
+  "runtimeFilesMatch": {
+    "origin": "https://rainrespite.github.io/rain-lift/",
+    "allMatch": true,
+    "results": [
+      {
+        "file": "index.html",
+        "matches": true
+      },
+      {
+        "file": "app.js",
+        "matches": true,
+        "version18": true,
+        "positionMenu": true
+      },
+      {
+        "file": "data.js",
+        "matches": true
+      },
+      {
+        "file": "health.js",
+        "matches": true
+      },
+      {
+        "file": "ai-report.js",
+        "matches": true
+      },
+      {
+        "file": "health-ui.js",
+        "matches": true
+      },
+      {
+        "file": "exercise-meta.js",
+        "matches": true
+      },
+      {
+        "file": "sw.js",
+        "matches": true
+      },
+      {
+        "file": "style.css",
+        "matches": true
+      },
+      {
+        "file": "manifest.webmanifest",
+        "matches": true
+      },
+      {
+        "file": "icon-192.png",
+        "matches": true
+      },
+      {
+        "file": "icon-512.png",
+        "matches": true
+      }
+    ]
+  },
+  "renamesPerformed": false,
+  "originalTrainingAndHealthModulesUnchanged": true,
+  "realSafariSyntheticFlow": "bulk6; preserve input73; session bodyweight68; record8 reps; finish; report extra5",
+  "localServerStoppedAndCachedReload": true,
+  "iphoneDeviceAcceptance": false,
+  "previousVersion": "v1.8.0-pages-20261102",
+  "newTag": "v1.8.1"
+}

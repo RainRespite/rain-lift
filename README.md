@@ -4,7 +4,7 @@
 
 v1.8 重构全历史 GPT 报告、增加动作负重类型和指定位置排序。开发日期2026-11-01；2026-11-02用户确认手机原入口为 https://rainrespite.github.io/rain-lift/ ，授权将已验收版本合入main，由既有GitHub Pages发布docs。请保留原手机图标、网址与本机记录。Sites是另一独立入口，不能代替手机实际Pages入口的更新。实际线上结果以发布核验为准。训练格式仍为版本1。
 
-[GitHub 交付与旧版恢复说明](docs/rollback-v1.8.md)。
+[GitHub 交付与旧版恢复说明](docs/rollback-v1.8.md) · [按版本查看工作、测试与发布记录](docs/version-work-records.md)。
 
 ## v1.8.1 小版本
 
