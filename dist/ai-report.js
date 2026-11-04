@@ -1,8 +1,8 @@
-import {identityConflict} from './data.js?v=1.8.3';
-import {healthSummary, healthDateKey} from './health.js?v=1.8.3';
-import {getExerciseLoadType,getBodyweightSetBreakdown,getLegacyLoadType} from './exercise-meta.js?v=1.8.3';
+import {identityConflict} from './data.js?v=1.8.4';
+import {healthSummary, healthDateKey} from './health.js?v=1.8.4';
+import {getExerciseLoadType,getBodyweightSetBreakdown,getLegacyLoadType} from './exercise-meta.js?v=1.8.4';
 
-import {resolveLoad,validateLoad} from './load.js?v=1.8.3';
+import {resolveLoad,validateLoad} from './load.js?v=1.8.4';
 
 const LABELS = {steps: '步数', sleep: '睡眠', resting_heart_rate: '静息心率', hrv: 'HRV SDNN', workout: '导入运动时长'};
 const UNITS = {count: '步', min: '分钟', bpm: '次/分', ms: '毫秒'};
