@@ -22,7 +22,7 @@ test('editing a planned exercise directly renames it and keeps its history after
  assert.doesNotMatch(reloaded.html,/归属待确认/);
 });
 
-test('legacy same-ID renamed history remains visible under current name and retains original session names',()=>{
+test('legacy same-ID history displays the current name while preserving the stored name',()=>{
  const d=initial(),p=d.plans[0];p.exercises=[exercise('绳索侧平举',5)];
  const e=p.exercises[0];start(d,p.id);record(d,d.active.movements[0].id,15,7.5);finish(d);
  e.name='龙侧平举';const app=createAppHarness(d);
@@ -31,7 +31,11 @@ test('legacy same-ID renamed history remains visible under current name and reta
  assert.doesNotMatch(app.html,/归属待确认/);
  app.action('history-open',{id:e.id});
  assert.match(app.html,/<h1>龙侧平举<\/h1>/);
- assert.match(app.html,/绳索侧平举/);
+ assert.match(app.html,/<h3>龙侧平举<\/h3>/);
+ assert.equal(app.state.history[0].movements[0].exercise.name,'绳索侧平举');
+ app.action('history-back');
+ app.action('history-tab',{tab:'session'});
+ assert.match(app.html,/<h3>龙侧平举<\/h3>/);
  assert.match(app.html,/7.5/);
 });
 
