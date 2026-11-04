@@ -12,3 +12,15 @@
 @media(max-width:360px){.exercise-tabs{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}}
 
 .bodyweight-summary{margin:20px 0;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);display:flex;flex-wrap:wrap;gap:0 14px}.bodyweight-summary p{width:100%;margin:0;font-size:14px}.bodyweight-summary small{color:var(--muted);line-height:1.6}.bodyweight-summary .text-button{white-space:normal;text-align:left}.set-row b{min-width:0;overflow-wrap:anywhere}.set-row>span{flex-shrink:0}.last-sets>div{max-width:260px;white-space:normal;overflow-wrap:anywhere}
+
+.rest-panel .island-start {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 1px solid #14201633;
+  border-radius: 8px;
+  background: #14201612;
+  font-size: 14px;
+  font-weight: 650;
+}
+.rest-panel .island-start:focus-visible { outline-color: var(--dark); }

@@ -1,4 +1,4 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.8.2';
+import {validateLoad,validateSnapshot} from './load.js?v=1.8.3';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const uid=()=>crypto.randomUUID();

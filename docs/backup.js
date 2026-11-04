@@ -1,7 +1,7 @@
-import {KEY,TRAINING_V2_KEY,parseBackup,initial} from './data.js?v=1.8.2';
-import {HEALTH_KEY,HealthRepository} from './health.js?v=1.8.2';
-import {EXERCISE_META_KEY,LEGACY_EXERCISE_META_KEY,parseExerciseMetaImport} from './exercise-meta.js?v=1.8.2';
-import {PROFILE_KEY,validateProfile} from './body-profile.js?v=1.8.2';
+import {KEY,TRAINING_V2_KEY,parseBackup,initial} from './data.js?v=1.8.3';
+import {HEALTH_KEY,HealthRepository} from './health.js?v=1.8.3';
+import {EXERCISE_META_KEY,LEGACY_EXERCISE_META_KEY,parseExerciseMetaImport} from './exercise-meta.js?v=1.8.3';
+import {PROFILE_KEY,validateProfile} from './body-profile.js?v=1.8.3';
 
 export const FULL_BEFORE_KEY='rainlift.full.before-restore.v1',JOURNAL_KEY='rainlift.full.restore-journal.v1';
 const KEYS=[KEY,TRAINING_V2_KEY,HEALTH_KEY,EXERCISE_META_KEY,LEGACY_EXERCISE_META_KEY,PROFILE_KEY];

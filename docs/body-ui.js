@@ -1,8 +1,8 @@
-import {start,record,identityConflict} from './data.js?v=1.8.2';
-import {ProfileRepository,PROFILE_KEY,profileSnapshot} from './body-profile.js?v=1.8.2';
-import {makeLoad,resolveLoad,suggestedLoad,unknownSnapshot} from './load.js?v=1.8.2';
-import {getExerciseLoadType} from './exercise-meta.js?v=1.8.2';
-import {exportFull,parseFull,restoreFull,restoreTrainingOnly,restoreFingerprint,recoverRestore,JOURNAL_KEY,FULL_BEFORE_KEY} from './backup.js?v=1.8.2';
+import {start,record,identityConflict} from './data.js?v=1.8.3';
+import {ProfileRepository,PROFILE_KEY,profileSnapshot} from './body-profile.js?v=1.8.3';
+import {makeLoad,resolveLoad,suggestedLoad,unknownSnapshot} from './load.js?v=1.8.3';
+import {getExerciseLoadType} from './exercise-meta.js?v=1.8.3';
+import {exportFull,parseFull,restoreFull,restoreTrainingOnly,restoreFingerprint,recoverRestore,JOURNAL_KEY,FULL_BEFORE_KEY} from './backup.js?v=1.8.3';
 
 export function prepareStorage(raw){
  let recoveryError=null;try{recoverRestore(raw);}catch(error){recoveryError='完整恢复尚未回滚，已停止全部写入：'+error.message;}

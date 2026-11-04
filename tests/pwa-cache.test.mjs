@@ -146,8 +146,8 @@ test('Pages and Sites ship identical versioned shells and the worker never clear
  for(const name of names)assert.equal(fs.readFileSync(new URL('../docs/'+name,import.meta.url),'utf8'),fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8'),name);
  const sw=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(sw,/localStorage|indexedDB|Clear-Site-Data|\.clear\(/);
- for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.8.2'),name);
+ for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','style.css'])assert.ok(sw.includes('./'+name+'?v=1.8.3'),name);
  for(const name of ['app.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js']){
-  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.8\.2$/);
+  for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.match(match[1],/\?v=1\.8\.3$/);
  }
 });
