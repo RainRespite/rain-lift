@@ -12,7 +12,7 @@ const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=
 let repo;try{repo=new Repository(store);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
 let view='today',selected=null,historyID=null,tab='exercise',lastTap=0,audio,awake=null,offlineReady=false;
 let nextSet=null;
-let serviceRegistration=null,offlineSetup=null,updateAvailable=false,lastUpdateCheck=0,updateChecking=false,updateState='联网后可检查更新';
+let serviceRegistration=null,offlineSetup=null,updateAvailable=false,reloading=false,lastUpdateCheck=0,updateChecking=false,updateState='联网后可检查更新';
 const healthUI=createHealthUI({storage:store,profile:()=>bodyUI.profile(),openModernSession:id=>bodyUI.sessionDialog(id),training:()=>repo.db,trainingError:()=>repo.loadError,esc,fmt,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,navigator});
 const db=()=>repo.db,movement=()=>db().active?.movements.find(m=>m.id===selected)??db().active?.movements[0];
 const bodyUI=createBodyUI({storage:store,rawStorage:localStorage,training:db,metadata:()=>healthUI.getMetadata(),change:mutate,preserve:preserveTrainingInputs,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,onRestored:()=>{repo=new Repository(store);healthUI.refresh();selected=null;nextSet=null;historyID=null;announced=null;render();},esc,fmt});
@@ -34,7 +34,7 @@ function render(){
  const active=db().active;
  if(nextSet&&(nextSet.sessionID!==active?.id||nextSet.movementID!==movement()?.id))nextSet=null;
  $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():view==='health'?healthUI.page():view==='body'?bodyUI.page():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
- document.body.classList.toggle('has-timer',!!(active&&db().rest));updateClock();
+ document.body.classList.toggle('has-timer',!!(active&&db().rest));updateClock();reloadWhenIdle();
 }
 function conflictIDs(){return [...new Set([...db().plans.flatMap(p=>p.exercises.map(e=>e.id)),...(db().active?.movements.map(m=>m.exercise.id)??[])])].filter(id=>identityConflict(db(),id));}
 function identityWarning(id){return `<aside class="warning"><b>旧动作关联需要整理</b><p>${identityNames(db(),id).map(esc).join(' / ')} 共用了一个旧编号，已暂停合并历史和推荐重量。</p><button class="text-button" data-action="history-resolve" data-id="${esc(id)}">整理这几个动作的历史</button></aside>`;}
@@ -322,7 +322,7 @@ function deleteHistoryDialog(id){
  const count=session.movements.reduce((n,m)=>n+m.sets.length,0);
  confirmAction('删除这次训练？',`${date(session.started)} ${new Date(session.started).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})} · ${session.name}，共 ${count} 组。会移除这整次训练的所有动作记录；计划与正在进行的训练保留。误删可到“最近删除”恢复。`,'移入最近删除',()=>mutate(d=>deleteHistory(d,id),'已移入最近删除，可随时恢复'));
 }
-function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>个人身体档案</h2><p>体重设置后持续使用，想改时再改；身高和性别选填。</p><button class="primary wide" data-action="profile-open">身体档案 / 修改体重</button></section><section class="settings-card"><h2>健康与 AI</h2><p>导入 Apple Health JSON、查看本机趋势，并生成可手动复制到 GPT 的分析报告。</p><button class="primary wide" data-action="health-open">打开健康与 AI</button></section><section class="settings-card"><h2>训练强度</h2><label class="effort-display">评分显示<select id="effort-display">${[['rpe','RPE'],['rir','RIR'],['off','关闭']].map(([value,label])=>`<option value="${value}" ${effortDisplay()===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="footnote">关闭后保留已保存的评分、组类型和力竭标记。</p></section><section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：${APP_VERSION}</p><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">更新保留本机记录。正在编辑时请先保存或关闭；训练中的重量和备注会在刷新前保存。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。${isIPhone?'可先设置灵动岛提醒，再从组间休息面板启动系统计时。':'如需锁屏提醒，请同时使用手机系统计时器。'}</p></aside>${isIPhone?'<button class="outline wide" data-action="island-setup">灵动岛提醒设置</button>':''}<button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><button class="primary wide" data-action="full-export">导出完整备份（推荐）</button><button class="outline wide" data-action="full-import">恢复完整备份 / 换机</button><button class="text-button" data-action="full-before">导出完整恢复前副本</button><input id="full-import-file" type="file" accept="application/json,.json" hidden><p class="footnote">完整备份含训练、健康、动作类型、身体档案、体重历史及训练快照；组标记与评分可在 1.8.5 或更新版本查看。下面的训练单独备份不包含其他分区。</p><button class="outline wide" data-action="history-deleted">查看最近删除的训练 (${db().deletedHistory?.length??0})</button><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 ${APP_VERSION}<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
+function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>个人身体档案</h2><p>体重设置后持续使用，想改时再改；身高和性别选填。</p><button class="primary wide" data-action="profile-open">身体档案 / 修改体重</button></section><section class="settings-card"><h2>健康与 AI</h2><p>导入 Apple Health JSON、查看本机趋势，并生成可手动复制到 GPT 的分析报告。</p><button class="primary wide" data-action="health-open">打开健康与 AI</button></section><section class="settings-card"><h2>训练强度</h2><label class="effort-display">评分显示<select id="effort-display">${[['rpe','RPE'],['rir','RIR'],['off','关闭']].map(([value,label])=>`<option value="${value}" ${effortDisplay()===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="footnote">关闭后保留已保存的评分、组类型和力竭标记。</p></section><section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：${APP_VERSION}</p><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">新版下载完成后，回到空闲的训练首页会自动载入。训练或编辑时可继续操作，手动刷新前会保存训练重量和备注。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。${isIPhone?'可先设置灵动岛提醒，再从组间休息面板启动系统计时。':'如需锁屏提醒，请同时使用手机系统计时器。'}</p></aside>${isIPhone?'<button class="outline wide" data-action="island-setup">灵动岛提醒设置</button>':''}<button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><button class="primary wide" data-action="full-export">导出完整备份（推荐）</button><button class="outline wide" data-action="full-import">恢复完整备份 / 换机</button><button class="text-button" data-action="full-before">导出完整恢复前副本</button><input id="full-import-file" type="file" accept="application/json,.json" hidden><p class="footnote">完整备份含训练、健康、动作类型、身体档案、体重历史及训练快照；组标记与评分可在 1.8.5 或更新版本查看。下面的训练单独备份不包含其他分区。</p><button class="outline wide" data-action="history-deleted">查看最近删除的训练 (${db().deletedHistory?.length??0})</button><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 ${APP_VERSION}<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
 function download(raw,name,type='application/json'){const blob=new Blob([raw],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function extraAction(a,b){
  if(bodyUI.action(a,b))return;
@@ -369,26 +369,40 @@ async function checkAppUpdate(manual=false){
  updateChecking=true;lastUpdateCheck=Date.now();updateState='正在检查更新…';updateStatus();
  try{
   const registration=await prepareOffline();await registration.update();
-  updateState=updateAvailable?'新版已就绪，请点“刷新到新版”':registration.installing?'正在下载新版，完成后会提示刷新':'已完成检查；有新版时会提示刷新';
+  updateState=updateAvailable?'新版已就绪，空闲时回到训练首页自动载入':registration.installing?'正在下载新版，完成后会提示刷新':'已完成检查；有新版时会提示刷新';
  }catch{updateState='检查失败，请联网后重试';if(manual)toast(updateState);}
  finally{updateChecking=false;updateStatus();}
 }
+function reloadWhenIdle(){
+ if(updateAvailable&&view==='today'&&!db().active&&repo.writable&&document.visibilityState==='visible'&&!$('#modal').open){
+  reloadApp();
+ }
+}
 function reloadApp(){
+ if(reloading)return;
  if($('#modal').open){toast('请先保存或关闭正在编辑的内容，再刷新');return;}
  try{
   if(db().active&&!preserveTrainingInputs())throw Error('请确认重量、负重类型与备注后再刷新。');
+  reloading=true;
   window.location.reload();
- }catch(err){toast('未刷新：'+err.message);}
+ }catch(err){reloading=false;toast('未刷新：'+err.message);}
 }
 $('#update-notice')?.addEventListener('click',e=>{if(e.target.closest('[data-action]')?.dataset.action==='app-reload')reloadApp();});
+$('#modal').addEventListener('close',reloadWhenIdle);
 if('serviceWorker' in navigator){
  let controlled=!!navigator.serviceWorker.controller;
  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-  if(controlled){updateAvailable=true;updateState='新版已就绪，请点“刷新到新版”';}
-  controlled=true;offlineReady=true;updateStatus();
+  if(!navigator.serviceWorker.controller)return;
+  if(controlled){updateAvailable=true;updateState='新版已就绪，空闲时回到训练首页自动载入';}
+  controlled=true;offlineReady=true;updateStatus();reloadWhenIdle();
  });
  window.addEventListener('load',async()=>{try{await prepareOffline();await checkAppUpdate();}catch{updateState='离线准备失败，请联网后重试';updateStatus();}});
  window.addEventListener('online',()=>checkAppUpdate());
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkAppUpdate();});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+   reloadWhenIdle();
+   if(!reloading)checkAppUpdate();
+  }
+ });
 }
 if(document.modelContext?.registerTool){const lifecycle=new AbortController();const tools=[{name:'read_training_state',description:'查看当前训练、动作及已记录的组；不修改数据。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:async()=>structuredClone({active:db().active,rest:db().rest})},{name:'record_training_set',description:'完成并保存当前选中动作的一组，自动开始休息计时。',inputSchema:{type:'object',properties:{reps:{type:'integer',minimum:1,maximum:999},weight:{type:'number',minimum:0,maximum:10000},extraWeightKg:{type:'number',minimum:0,maximum:10000},mode:{type:'string',enum:['bodyweight_plus_extra','external','assisted','unknown','legacy']}},required:['reps'],additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{if(!movement()||!Number.isInteger(input?.reps)||input.reps<1||input.reps>999||!(typeof input.weight==='number'&&Number.isFinite(input.weight)&&input.weight>=0&&input.weight<=10000||typeof input.extraWeightKg==='number'&&Number.isFinite(input.extraWeightKg)&&input.extraWeightKg>=0&&input.extraWeightKg<=10000))throw Error('需要当前训练动作和有效的重量、次数。');const kind=bodyUI.mode(movement());if(kind==='bodyweight_plus_extra'&&(input.mode!==kind||typeof input.extraWeightKg!=='number'))throw Error('自重新模式必须明确 mode 和 extraWeightKg，不能只传 weight。');if(input.mode!==undefined&&input.mode!==kind)throw Error('请求模式与当前动作模式不一致，请确认后重试。');const w=kind==='bodyweight_plus_extra'?input.extraWeightKg:input.weight;const result=repo.change(d=>bodyUI.record(d,movement().id,input.reps,w));render();return {id:result.id,weight:result.weight,reps:result.reps,load:result.load??null};}}];for(const t of tools)try{Promise.resolve(document.modelContext.registerTool(t,{signal:lifecycle.signal})).catch(()=>{});}catch{}window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}

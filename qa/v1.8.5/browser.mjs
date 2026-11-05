@@ -194,6 +194,21 @@ try {
   assert.deepEqual(await repoData(page),afterOld);
   assert.deepEqual(errors,[]);
   console.log('PASS re-upgrade preserves every stored field and visibly excludes the original rating from current coverage');
+  await today(page);
+  await actions(page,'plan-edit').first().click();
+  await modal(page).locator('[name="planName"]').fill('未提交的计划草稿');
+  release='recovery';
+  await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration()).update();});
+  await page.locator('#update-notice button').waitFor();
+  assert.equal(await modal(page).locator('[name="planName"]').inputValue(),'未提交的计划草稿');
+  const reloaded=page.waitForEvent('load');
+  await modal(page).locator('[data-modal="close"]').click();
+  await reloaded;
+  await waitForCache(page,recoveryManifest.cache);
+  await settings(page);
+  assert.ok((await page.locator('main').innerText()).includes(recoveryManifest.version));
+  assert.deepEqual(await repoData(page),afterOld);
+  console.log('PASS idle home automatically loads the installed update after the edit closes, preserving stored data');
 } finally {
   await browser?.close();
   server.close();

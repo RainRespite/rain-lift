@@ -12,8 +12,9 @@ function phone(database=initial(),controlled=true) {
  const registration=events({active:{},installing:null,waiting:null,async update(){checks++;}});
  const worker=events({controller:controlled?{}:null,ready:Promise.resolve(registration),async register(path,options){registrationOptions=options;return registration;}});
  const window=events({location:{href:'https://example.test/rain-lift/',reload(){reloads++;}}});
- const app=createAppHarness(database,{globals:{window,navigator:{onLine:true,serviceWorker:worker},location:window.location}});
- return {app,window,worker,registration,get options(){return registrationOptions;},get checks(){return checks;},get reloads(){return reloads;}};
+ const document=events({visibilityState:'visible'});
+ const app=createAppHarness(database,{globals:{window,navigator:{onLine:true,serviceWorker:worker},location:window.location},documentProperties:document});
+ return {app,window,worker,registration,document,get options(){return registrationOptions;},get checks(){return checks;},get reloads(){return reloads;}};
 }
 
 test('opening the saved app checks for updates without the worker HTTP cache',async()=>{
@@ -44,7 +45,7 @@ test('foreground checks are throttled but the manual check always checks',async(
 
 test('a first offline installation does not claim a new version needs reloading',async()=>{
  const p=phone(initial(),false);await p.window.emit('load');
- await p.worker.emit('controllerchange');assert.equal(p.app.updateNotice,'');assert.equal(p.reloads,0);
+ p.worker.controller={};await p.worker.emit('controllerchange');assert.equal(p.app.updateNotice,'');assert.equal(p.reloads,0);
 });
 
 test('network changes and update checks preserve unsaved training input',async()=>{
@@ -60,4 +61,35 @@ test('refresh saves current training input before navigating',async()=>{
  p.app.action('app-reload');
  assert.equal(p.reloads,1);assert.equal(p.app.state.active.movements[0].overrideWeight,37.5);
  assert.equal(p.app.state.active.note,'还没失焦的备注');
+});
+
+test('an installed update reloads the visible idle training home once',async()=>{
+ const p=phone();await p.window.emit('load');
+ await p.worker.emit('controllerchange');await p.worker.emit('controllerchange');
+ assert.equal(p.reloads,1);
+});
+
+test('settings and an active workout defer the installed update until home is idle',async()=>{
+ const d=initial();start(d,d.plans[0].id);const p=phone(d);await p.window.emit('load');
+ p.app.run("$('#note').value='未保存草稿'");
+ await p.worker.emit('controllerchange');assert.equal(p.reloads,0);
+ assert.equal(p.app.run("$('#note').value"),'未保存草稿');
+ p.app.action('nav',{view:'settings'});assert.equal(p.reloads,0);
+ p.app.action('nav',{view:'today'});assert.equal(p.reloads,0);
+ p.app.action('finish');p.app.modalAction('confirm');
+ p.app.run("$('#modal').listeners.close[0]()");
+ assert.equal(p.reloads,1);
+});
+
+test('backgrounded home defers reload until visible and a closed edit does the same',async()=>{
+ const p=phone();
+ p.app.run("document.visibilityState='hidden'");
+ await p.worker.emit('controllerchange');assert.equal(p.reloads,0);
+ p.app.run("document.visibilityState='visible'");
+ await p.document.emit('visibilitychange');assert.equal(p.reloads,1);
+ const editing=phone();
+ editing.app.action('plan-edit',{id:editing.app.state.plans[0].id});
+ await editing.worker.emit('controllerchange');assert.equal(editing.reloads,0);
+ editing.app.run("$('#modal').close();$('#modal').listeners.close[0]()");
+ assert.equal(editing.reloads,1);
 });

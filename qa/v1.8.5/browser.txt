@@ -5,3 +5,4 @@ PASS 320px touch-layout emulation, RIR 5+, stale edit rejection, unchanged timer
 PASS original v1.8.4 imports and re-exports both files, edits a set, appends an unclassified set, saves a plan and restores history
 PASS recovery build activated with a unique cache and reopened offline with identical storage
 PASS re-upgrade preserves every stored field and visibly excludes the original rating from current coverage
+PASS idle home automatically loads the installed update after the edit closes, preserving stored data
