@@ -1,6 +1,6 @@
-import {identityConflict} from './data.js?v=1.8.6';
-import {healthDateKey} from './health.js?v=1.8.6';
-import {validateLoad} from './load.js?v=1.8.6';
+import {identityConflict} from './data.js?v=1.9.0';
+import {healthDateKey} from './health.js?v=1.9.0';
+import {validateLoad} from './load.js?v=1.9.0';
 
 const DAY = 86400000;
 const MASS_UNITS = new Set(['kg','kgs','kilogram','kilograms','公斤','千克','lb','lbs','pound','pounds','磅']);

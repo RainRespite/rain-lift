@@ -1,5 +1,6 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.8.6';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.8.6';
+import {validateLoad,validateSnapshot} from './load.js?v=1.9.0';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.0';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.0';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const uid=()=>crypto.randomUUID();
@@ -10,8 +11,8 @@ const integer=(x,min,max)=>Number.isInteger(x)&&finite(x,min,max);
 const text=x=>typeof x==='string'&&x.trim().length>0&&x.length<=200;
 const ids=xs=>Array.isArray(xs)&&xs.every(x=>text(x.id))&&new Set(xs.map(x=>x.id)).size===xs.length;
 export function validate(d){
- const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999));
- const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit))&&(s.performance===undefined||validatePerformance(s.performance));
+ const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999))&&(e.progression===undefined||validateProgression(e.progression));
+ const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit))&&(s.performance===undefined||validatePerformance(s.performance))&&(s.progressionTarget===undefined||validateProgressionTarget(s.progressionTarget));
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(s=>set(s,m.exercise.unit))&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement)&&(s.loadSchemaVersion===undefined||d.version===2&&s.loadSchemaVersion===1&&validateSnapshot(s.bodyWeightSnapshot)&&s.movements.every(m=>m.sets.every(set=>set.load)));
  if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
@@ -90,6 +91,8 @@ export function record(d,id,reps,weight,timed=true,now=Date.now(),load,performan
  if(load){validateLoad(load,weight,m.exercise.unit);s.load=structuredClone(load);}
  else if(d.active.loadSchemaVersion===1)throw Error('新版训练需要明确的组负重模式。');
  if(performance!==undefined)setPerformance(s,performance);
+ const target=progressionTarget(m.exercise);
+ if(target){validateProgressionTarget(target);s.progressionTarget=target;}
  if(load)d.version=2;
  m.sets.push(s);
  m.skipped=false;

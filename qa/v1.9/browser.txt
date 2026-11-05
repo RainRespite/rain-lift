@@ -1,0 +1,5 @@
+Chrome 156.0.8078.80 · 320px · isolated 127.0.0.1 · synthetic records
+PASS failed install leaves old shell usable; completed v1.9.0 install auto-loads on idle home with equal storage
+PASS actual opt-in, cold start, quick record, RPE annotation and advisory reps respect manual weight and timer
+PASS same-weight two-session evidence, explicit adoption, manual priority, narrow layout and offline reload
+PASS adjacent recovery offline and original v1.8.4 full restore/record/re-upgrade preserve new evidence and legacy absence

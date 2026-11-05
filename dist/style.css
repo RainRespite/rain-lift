@@ -56,3 +56,12 @@
 .record-day-value{display:block}
 .record-day-value small{color:var(--muted);overflow-wrap:anywhere}
 @media(max-width:430px){.record-filters,.record-prs{grid-template-columns:repeat(2,minmax(0,1fr))}.record-filters .record-group-field{grid-column:1/-1;grid-row:1}.record-prs>div:last-child:nth-child(odd){grid-column:1/-1}}
+
+.progression-settings{margin:14px 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.progression-settings summary{min-height:34px;padding:5px 0;color:var(--accent);cursor:pointer}
+.progression-settings .footnote{margin:0 0 6px}
+.progression-panel{padding:12px;margin:0 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow-wrap:anywhere}
+.progression-panel small,.progression-panel p{display:block;color:var(--muted);font-size:13px}
+.progression-panel strong{display:block;margin:5px 0;color:var(--accent)}
+.progression-panel p{margin:4px 0 0}
+.progression-panel .progression-apply{min-height:44px;margin-top:8px;padding:7px 12px;font-size:14px}

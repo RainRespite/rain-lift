@@ -1,4 +1,4 @@
-import {RECORD_RANGES,deriveExerciseRecords,recordDayLabel,recordSeries} from './records.js?v=1.8.6';
+import {RECORD_RANGES,deriveExerciseRecords,recordDayLabel,recordSeries} from './records.js?v=1.9.0';
 
 const exclusionLabels={
   unclassified:'未分类',warmup:'热身',drop:'递减',unknownLoad:'负重含义未确认',missingBodyWeight:'缺少本组参考体重',

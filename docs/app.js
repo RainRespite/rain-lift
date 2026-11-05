@@ -1,10 +1,11 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository} from './data.js?v=1.8.6';
-import {createHealthUI} from './health-ui.js?v=1.8.6';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.8.6';
-import {SET_TYPES,effortLabel,performanceCountText,performanceCounts,performanceDetails,setPerformance} from './performance.js?v=1.8.6';
-import {recordsPanel} from './records-ui.js?v=1.8.6';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository} from './data.js?v=1.9.0';
+import {createHealthUI} from './health-ui.js?v=1.9.0';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.0';
+import {SET_TYPES,effortLabel,performanceCountText,performanceCounts,performanceDetails,setPerformance} from './performance.js?v=1.9.0';
+import {recordsPanel} from './records-ui.js?v=1.9.0';
+import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.0';
 
-const APP_VERSION='1.8.6';
+const APP_VERSION='1.9.0';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
@@ -89,7 +90,73 @@ function saveTrainingSet(m,reps,weight,timed,performance){
  return saved;
 }
 
-function training(){const s=db().active,m=movement();return `<div class="row"><p class="eyebrow">${esc(s.name)}</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作">${s.movements.map(x=>`<button data-action="select" data-id="${x.id}" class="${x.id===m?.id?'selected':''}">${x.skipped?'跳过 · ':''}${esc(x.exercise.name)}${x.sets.length?` <small>${x.sets.length}</small>`:''}</button>`).join('')}</div>${m?`<div class="training-heading"><h1>${esc(m.exercise.name)}</h1><div class="row"><span class="muted">已完成 <b class="accent">${m.sets.length}</b> / ${m.exercise.target} 组</span><span class="badge">下一组 · ${String(m.sets.length+1).padStart(2,'0')}</span></div></div>${bodyUI.panel(m)}<section class="record-card"><label for="weight" class="weight-label">${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'} <span>${esc(m.exercise.unit)}</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="${bodyUI.mode(m)}" inputmode="decimal" type="number" min="0" max="10000" step="any" value="${bodyUI.suggested(db(),m)}" aria-label="${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'}"><button data-action="weight-plus" aria-label="增加重量">＋</button></div>${bodyUI.reference(m,bodyUI.suggested(db(),m))}${nextSetControls()}<div class="reps-buttons">${m.exercise.reps.map(r=>`<button data-action="record" data-reps="${r}" aria-label="完成${r}次"><strong>${r}</strong><span>次 · 完成</span></button>`).join('')}</div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="${m.exercise.id}">查看历史</button></div>${identityConflict(db(),m.exercise.id)?identityWarning(m.exercise.id):previous(db(),m.exercise.id,m.exercise.unit)?`<div class="last-sets">${previous(db(),m.exercise.id,m.exercise.unit).sets.map((x,i)=>`<div><small>第 ${i+1} 组</small><b>${esc(bodyUI.setText(x,m.exercise.unit))} <span>× ${x.reps}</span></b></div>`).join('')}</div>`:'<p class="muted">第一次记录，从今天开始。</p>'}</section><section><div class="row section-heading"><h2>本次记录 <span class="count">${m.sets.length}</span></h2>${m.sets.length?'<button class="text-button" data-action="undo">撤销上一组</button>':''}</div>${setCounts(m.sets)}${m.sets.length?`<div class="set-list">${m.sets.map((x,i)=>`<button class="set-row" data-action="set-edit" data-id="${x.id}"><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}${setDetails(x)}</b><span>× ${x.reps} 次</span><span class="edit-label">修改</span></button>`).join('')}</div>`:'<div class="empty-small">完成一组后，点上方次数按钮。</div>'}</section>`:'<div class="empty"><h1>添加今天的动作</h1><button class="primary" data-action="manage">选择动作</button></div>'}<button class="outline wide" data-action="session-bodyweight">${s.loadSchemaVersion===1?'本次参考体重':'本次体重 / 自重加重'}</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…">${esc(s.note)}</textarea><div class="row end-row"><span class="muted">共 ${s.movements.reduce((a,m)=>a+m.sets.length,0)} 组</span><button class="outline" data-action="finish">结束训练</button></div>`;}
+const progressionReasons={
+ identity:'动作归属还需核对。',unsupported_mode:'目前只对明确的外部负重动作给出建议。',skipped:'本次已跳过这个动作。',
+ duplicate_action:'同次训练有多个同动作条目，先保留当前设置。',different_next_set:'普通工作组才使用这项建议。',
+ invalid_weight:'请先输入有效重量。',latest_not_working:'最近一组需要是明确的普通工作组。',
+ invalid_set:'最近记录的时间、重量或次数无效。',different_load:'记录的单位或负重模式与当前不同。',
+ different_weight:'记录重量与当前输入不同。',failure:'证据中有力竭标记。',stale_effort:'记录条件变了，评分需要重新确认。',
+ no_effort:'缺少强度评分。',bounded_effort:'RIR 5+ 是范围评分，当前规则需要精确评分。',
+ high_effort:'已记录的强度超过建议增加训练量的条件。',different_target:'记录使用了不同的目标组数或次数范围。',
+ below_range:'上一组次数还没到目标下限。',at_rep_limit:'上一组已到次数上限，本次先保持重量。',
+ no_current_working_set:'当前组记录还不足以确认加重适用。',few_sessions:'需要至少两次已完成的同动作训练。',
+ old_history:`最近两次训练需在过去 ${LOOKBACK_DAYS} 天内。`,too_few_sets:'最近一次或两次训练的普通组数还没到目标。',
+ no_target_snapshot:'最近两次训练需有记组时保存的目标。',below_session_limit:'最近两次的普通组还没全部达到次数上限。',
+ weight_limit:'再增加一个步长会超出可用重量范围。'
+};
+
+function progressionFor(d,m,weight){
+ if(!m?.exercise.progression?.enabled)return null;
+ const next=nextPerformance();
+ return recommendProgression(d,m,{mode:bodyUI.mode(m,d.active),weight,now:Date.now(),
+  identityUncertain:identityConflict(d,m.exercise.id),nextSetType:next.setType,nextToFailure:next.toFailure});
+}
+
+function progressionToken(d,m,proposal){
+ return proposal?.kind==='increase'?JSON.stringify([d.active.id,m.id,m.exercise.id,m.exercise.unit,
+  proposal.fromWeight,proposal.weight,proposal.sessionIDs]):'';
+}
+
+function progressionContent(m,weight){
+ const proposal=progressionFor(db(),m,weight);
+ if(!proposal)return '';
+ const unit=esc(m.exercise.unit),{minReps,maxReps}=m.exercise.progression;
+ let content;
+ if(proposal.kind==='reps'){
+  const mode=effortDisplay(),effort=mode==='off'?'强度符合建议条件':effortLabel({kind:'exact',rpe:proposal.rpe},mode);
+  content=`<strong>保持 ${fmt(proposal.weight)} ${unit}，尝试 ${proposal.reps} 次</strong><p>上一普通组 ${proposal.previousReps} 次，${effort}。</p>`;
+ }else if(proposal.kind==='increase'){
+  const token=progressionToken(db(),m,proposal);
+  content=`<strong>本次可试 ${fmt(proposal.weight)} ${unit}</strong><p>最近两次训练都在 ${fmt(proposal.fromWeight)} ${unit} 达到组数和次数目标，评分符合条件。</p>
+   <button class="outline progression-apply" data-action="progression-apply" data-suggestion="${esc(token)}">采用建议重量</button>`;
+ }else{
+  content=`<p>${progressionReasons[proposal.reason]}</p>`;
+ }
+ return `<small>渐进建议 · 目标 ${minReps}–${maxReps} 次</small>${content}`;
+}
+
+function setWeightOverride(d,movementID,mode,weight){
+ const current=d.active?.movements.find(item=>item.id===movementID);
+ if(!current)throw Error('找不到这个动作，请重新打开训练。');
+ current.overrideMode=mode;
+ current.overrideWeight=weight;
+}
+
+function adoptProgression(m,token){
+ const input=$('#weight');
+ if(!input||!m||!token||!preserveTrainingInputs())return;
+ const weight=input.value.trim()===''?NaN:Number(input.value);
+ mutate(d=>{
+  const current=d.active?.movements.find(item=>item.id===m.id);
+  const proposal=progressionFor(d,current,weight);
+  if(!current||proposal?.kind!=='increase'||progressionToken(d,current,proposal)!==token){
+   throw Error('建议条件已变化，已保留当前输入。');
+  }
+  setWeightOverride(d,current.id,bodyUI.mode(current,d.active),proposal.weight);
+ },'建议重量已填入');
+}
+
+function training(){const s=db().active,m=movement();return `<div class="row"><p class="eyebrow">${esc(s.name)}</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作">${s.movements.map(x=>`<button data-action="select" data-id="${x.id}" class="${x.id===m?.id?'selected':''}">${x.skipped?'跳过 · ':''}${esc(x.exercise.name)}${x.sets.length?` <small>${x.sets.length}</small>`:''}</button>`).join('')}</div>${m?`<div class="training-heading"><h1>${esc(m.exercise.name)}</h1><div class="row"><span class="muted">已完成 <b class="accent">${m.sets.length}</b> / ${m.exercise.target} 组</span><span class="badge">下一组 · ${String(m.sets.length+1).padStart(2,'0')}</span></div></div>${bodyUI.panel(m)}<section class="record-card"><label for="weight" class="weight-label">${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'} <span>${esc(m.exercise.unit)}</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="${bodyUI.mode(m)}" inputmode="decimal" type="number" min="0" max="10000" step="any" value="${bodyUI.suggested(db(),m)}" aria-label="${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'}"><button data-action="weight-plus" aria-label="增加重量">＋</button></div>${bodyUI.reference(m,bodyUI.suggested(db(),m))}${m.exercise.progression?.enabled?`<aside id="progression-panel" class="progression-panel" aria-label="渐进建议">${progressionContent(m,bodyUI.suggested(db(),m))}</aside>`:''}${nextSetControls()}<div class="reps-buttons">${m.exercise.reps.map(r=>`<button data-action="record" data-reps="${r}" aria-label="完成${r}次"><strong>${r}</strong><span>次 · 完成</span></button>`).join('')}</div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="${m.exercise.id}">查看历史</button></div>${identityConflict(db(),m.exercise.id)?identityWarning(m.exercise.id):previous(db(),m.exercise.id,m.exercise.unit)?`<div class="last-sets">${previous(db(),m.exercise.id,m.exercise.unit).sets.map((x,i)=>`<div><small>第 ${i+1} 组</small><b>${esc(bodyUI.setText(x,m.exercise.unit))} <span>× ${x.reps}</span></b></div>`).join('')}</div>`:'<p class="muted">第一次记录，从今天开始。</p>'}</section><section><div class="row section-heading"><h2>本次记录 <span class="count">${m.sets.length}</span></h2>${m.sets.length?'<button class="text-button" data-action="undo">撤销上一组</button>':''}</div>${setCounts(m.sets)}${m.sets.length?`<div class="set-list">${m.sets.map((x,i)=>`<button class="set-row" data-action="set-edit" data-id="${x.id}"><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}${setDetails(x)}</b><span>× ${x.reps} 次</span><span class="edit-label">修改</span></button>`).join('')}</div>`:'<div class="empty-small">完成一组后，点上方次数按钮。</div>'}</section>`:'<div class="empty"><h1>添加今天的动作</h1><button class="primary" data-action="manage">选择动作</button></div>'}<button class="outline wide" data-action="session-bodyweight">${s.loadSchemaVersion===1?'本次参考体重':'本次体重 / 自重加重'}</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…">${esc(s.note)}</textarea><div class="row end-row"><span class="muted">共 ${s.movements.reduce((a,m)=>a+m.sets.length,0)} 组</span><button class="outline" data-action="finish">结束训练</button></div>`;}
 function restPanel(){
  const {active,rest}=db();
  const matches=active.movements.filter(m=>m.sets.some(set=>set.id===rest.setID));
@@ -144,7 +211,7 @@ function preserveTrainingInputs(){
   let value;if(weight){if(weight.dataset.loadMode&&weight.dataset.loadMode!==bodyUI.mode(m)){render();throw Error('动作负重类型已变化，请确认新模式的重量。');}const raw=weight.value;value=Number(raw);if(raw.trim()===''||!Number.isFinite(value)||value<0||value>10000)throw Error('请先填写 0–10000 之间的有效重量，再调整动作。');}
   if(note&&note.value.length>10000)throw Error('训练备注不能超过 10000 字。');
   if((weight&&m&&value!==bodyUI.suggested(db(),m))||(note&&note.value!==db().active.note))repo.change(d=>{
-   if(weight&&m){const x=d.active.movements.find(x=>x.id===m.id);x.overrideWeight=value;x.overrideMode=bodyUI.mode(m);}
+   if(weight&&m)setWeightOverride(d,m.id,bodyUI.mode(m),value);
    if(note)d.active.note=note.value;
   });
   if(m)selected=m.id;
@@ -167,10 +234,25 @@ function planEditor(plan){
  ]))
  });
 }
-function exerciseEditor(e,save,back){if(identityConflict(db(),e.id)){identityResolver(e.id);return;}showDialog('动作设置',`<label>动作名称<input name="name" value="${esc(e.name)}" required maxlength="100"></label><p class="footnote">修改名称会延续这个动作的全部历史。不同动作请返回后选择“创建新动作”。</p><div class="form-grid"><label>初始重量<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${e.weight}" required></label><label>单位<input name="unit" maxlength="20" value="${esc(e.unit)}"></label><label>加减步长<input name="step" type="number" inputmode="decimal" min=".01" max="1000" step="any" value="${e.step}" required></label><label>目标组数<input name="target" type="number" inputmode="numeric" min="1" max="99" value="${e.target}" required></label></div><label>每组休息（秒）<input name="rest" type="number" inputmode="numeric" min="15" max="3600" value="${e.rest}" required></label><p class="muted">三个次数快捷键 · 请填写不同次数</p><div class="form-grid three">${e.reps.map((n,i)=>`<label>按钮 ${i+1}<input name="r${i}" type="number" inputmode="numeric" min="1" max="999" value="${n}" required></label>`).join('')}</div><p class="footnote">哑铃记单只还是总重量，由你自己约定；自重可填 0。</p><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>{
+function progressionSettings(e){
+ const {enabled,minReps,maxReps}=e.progression??DEFAULT_REP_RANGE;
+ return `<details class="progression-settings" ${enabled?'open':''}><summary>渐进建议（选填）</summary>
+  <label class="check-label"><input type="checkbox" name="progressionEnabled" ${enabled?'checked':''}>启用这个动作的渐进建议</label>
+  <div class="form-grid"><label>目标次数下限<input name="progressionMin" type="number" inputmode="numeric" min="1" max="999" value="${minReps}"></label>
+  <label>目标次数上限<input name="progressionMax" type="number" inputmode="numeric" min="1" max="999" value="${maxReps}"></label></div>
+  <p class="footnote">次数范围用于建议。目标组数和三个次数快捷键在上方分别设置。</p></details>`;
+}
+
+function exerciseEditor(e,save,back){if(identityConflict(db(),e.id)){identityResolver(e.id);return;}showDialog('动作设置',`<label>动作名称<input name="name" value="${esc(e.name)}" required maxlength="100"></label><p class="footnote">修改名称会延续这个动作的全部历史。不同动作请返回后选择“创建新动作”。</p><div class="form-grid"><label>初始重量<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${e.weight}" required></label><label>单位<input name="unit" maxlength="20" value="${esc(e.unit)}"></label><label>加减步长<input name="step" type="number" inputmode="decimal" min=".01" max="1000" step="any" value="${e.step}" required></label><label>目标组数<input name="target" type="number" inputmode="numeric" min="1" max="99" value="${e.target}" required></label></div><label>每组休息（秒）<input name="rest" type="number" inputmode="numeric" min="15" max="3600" value="${e.rest}" required></label><p class="muted">三个次数快捷键 · 请填写不同次数</p><div class="form-grid three">${e.reps.map((n,i)=>`<label>按钮 ${i+1}<input name="r${i}" type="number" inputmode="numeric" min="1" max="999" value="${n}" required></label>`).join('')}</div>${progressionSettings(e)}<p class="footnote">哑铃记单只还是总重量，由你自己约定；自重可填 0。</p><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>{
  const updated={...e,name:String(fd.get('name')).trim(),unit:String(fd.get('unit')),weight:+fd.get('weight'),step:+fd.get('step'),target:+fd.get('target'),rest:+fd.get('rest'),reps:[0,1,2].map(i=>+fd.get('r'+i))};
  if(new Set(updated.reps).size!==3){toast('三个快捷次数不能相同');return;}
- try{save(reviseExercise(db(),e,updated));}catch(err){toast(err.message);}
+ try{
+  if(fd.has('progressionEnabled')){
+   updated.progression={enabled:true,minReps:Number(fd.get('progressionMin')),maxReps:Number(fd.get('progressionMax'))};
+   validateProgression(updated.progression);
+  }else if(e.progression)updated.progression={...e.progression,enabled:false};
+  save(reviseExercise(db(),e,updated));
+ }catch(err){toast(err.message);}
  },{back});}
 function performanceFields(values){
  const {setType,toFailure,effort}=values,mode=effortDisplay();
@@ -281,7 +363,14 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
   if(db().active?.id!==sessionID||db().rest?.setID!==setID){toast('休息对应的组已变化，请重新打开。');return;}
   try{annotateSet({sessionID,movementID,setID});}catch(err){toast(err.message);}
  }
- else if(a==='weight-minus'||a==='weight-plus'){mutate(d=>{const x=d.active.movements.find(x=>x.id===m.id);x.overrideMode=bodyUI.mode(m);x.overrideWeight=Math.max(0,Math.min(10000,Math.round((bodyUI.suggested(d,x)+(a==='weight-plus'?1:-1)*x.exercise.step)*100)/100));});}
+ else if(a==='progression-apply'){adoptProgression(m,b.dataset.suggestion);}
+ else if(a==='weight-minus'||a==='weight-plus'){
+  mutate(d=>{
+   const change=(a==='weight-plus'?1:-1)*m.exercise.step;
+   const weight=Math.max(0,Math.min(10000,Math.round((bodyUI.suggested(d,m)+change)*100)/100));
+   setWeightOverride(d,m.id,bodyUI.mode(m),weight);
+  });
+ }
  else if(a==='undo'){mutate(d=>removeSet(d,m.id,m.sets.at(-1).id),'已撤销，相关计时已取消');}
  else if(a==='island-start'){
   if(!isIPhone||!remaining(db().rest)||!preserveTrainingInputs())return;
@@ -309,8 +398,15 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
  else extraAction(a,b);
 });
 
-$('#app').addEventListener('input',e=>{if(e.target.id==='weight'){const target=$('#reference-load');if(target)target.textContent=bodyUI.referenceText(movement(),e.target.value);}});
-$('#app').addEventListener('change',e=>{if(e.target.id==='weight'){const raw=e.target.value,v=Number(raw),m=movement();if(raw.trim()===''||!Number.isFinite(v)||v<0||v>10000){toast('请输入 0–10000 之间的重量');render();return;}try{repo.change(d=>{const x=d.active.movements.find(x=>x.id===m.id);x.overrideWeight=v;x.overrideMode=bodyUI.mode(m);});}catch(err){toast(err.message);render();}}if(e.target.id==='note')try{repo.change(d=>{d.active.note=e.target.value;});}catch(err){toast(err.message);}});
+$('#app').addEventListener('input',e=>{
+ if(e.target.id!=='weight')return;
+ const m=movement(),raw=e.target.value;
+ const reference=$('#reference-load');
+ if(reference)reference.textContent=bodyUI.referenceText(m,raw);
+ const panel=$('#progression-panel');
+ if(panel)panel.innerHTML=progressionContent(m,raw.trim()===''?NaN:Number(raw));
+});
+$('#app').addEventListener('change',e=>{if(e.target.id==='weight'){const raw=e.target.value,v=Number(raw),m=movement();if(raw.trim()===''||!Number.isFinite(v)||v<0||v>10000){toast('请输入 0–10000 之间的重量');render();return;}try{repo.change(d=>setWeightOverride(d,m.id,bodyUI.mode(m),v));}catch(err){toast(err.message);render();}}if(e.target.id==='note')try{repo.change(d=>{d.active.note=e.target.value;});}catch(err){toast(err.message);}});
 function connectionStatus(){const status=$('#connection-state');if(status)status.textContent=navigator.onLine?'本机保存':'离线模式';}
 setInterval(updateClock,500);window.addEventListener('online',connectionStatus);window.addEventListener('offline',connectionStatus);document.addEventListener('visibilitychange',updateClock);
 window.addEventListener('storage',e=>{if(e.key===KEY||e.key===TRAINING_V2_KEY){try{repo=new Repository(store);render();toast('记录已从另一窗口更新');}catch{toast('另一窗口的数据发生变化，请重新打开页面。');}}});
