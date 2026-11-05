@@ -1,9 +1,10 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository} from './data.js?v=1.8.5';
-import {createHealthUI} from './health-ui.js?v=1.8.5';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.8.5';
-import {SET_TYPES,effortLabel,performanceCountText,performanceCounts,performanceDetails,setPerformance} from './performance.js?v=1.8.5';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository} from './data.js?v=1.8.6';
+import {createHealthUI} from './health-ui.js?v=1.8.6';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.8.6';
+import {SET_TYPES,effortLabel,performanceCountText,performanceCounts,performanceDetails,setPerformance} from './performance.js?v=1.8.6';
+import {recordsPanel} from './records-ui.js?v=1.8.6';
 
-const APP_VERSION='1.8.5';
+const APP_VERSION='1.8.6';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
@@ -12,6 +13,9 @@ const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=
 let repo;try{repo=new Repository(store);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
 let view='today',selected=null,historyID=null,tab='exercise',lastTap=0,audio,awake=null,offlineReady=false;
 let nextSet=null;
+const initialRecordsFilter={range:'30',group:null,metric:'load',weight:null};
+const recordFields={'record-range':'range','record-group':'group','record-metric':'metric','record-weight':'weight'};
+let recordsFilter={...initialRecordsFilter};
 let serviceRegistration=null,offlineSetup=null,updateAvailable=false,reloading=false,lastUpdateCheck=0,updateChecking=false,updateState='联网后可检查更新';
 const healthUI=createHealthUI({storage:store,profile:()=>bodyUI.profile(),openModernSession:id=>bodyUI.sessionDialog(id),training:()=>repo.db,trainingError:()=>repo.loadError,esc,fmt,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,navigator});
 const db=()=>repo.db,movement=()=>db().active?.movements.find(m=>m.id===selected)??db().active?.movements[0];
@@ -297,7 +301,11 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
  else if(a==='session-bodyweight'){if(preserveTrainingInputs()){if(db().active.loadSchemaVersion===1)bodyUI.sessionDialog(db().active.id);else healthUI.openSessionBodyWeight(db().active.id);}}
  else if(a==='set-new'){if(m&&preserveTrainingInputs())setEditor(m,null);}
  else if(a==='set-edit'){const entry=m?.sets.find(s=>s.id===b.dataset.id);if(entry&&preserveTrainingInputs())setEditor(m,entry);}
- else if(a==='history-open'){historyID=b.dataset.id;view='history';render();scrollTo(0,0);}
+ else if(a==='history-open'){
+  if(db().active&&!preserveTrainingInputs())return;
+  if(historyID!==b.dataset.id)recordsFilter={...initialRecordsFilter};
+  historyID=b.dataset.id;view='history';render();scrollTo(0,0);
+ }
  else extraAction(a,b);
 });
 
@@ -308,10 +316,26 @@ setInterval(updateClock,500);window.addEventListener('online',connectionStatus);
 window.addEventListener('storage',e=>{if(e.key===KEY||e.key===TRAINING_V2_KEY){try{repo=new Repository(store);render();toast('记录已从另一窗口更新');}catch{toast('另一窗口的数据发生变化，请重新打开页面。');}}});
 render();
 
+$('#app').addEventListener('change',event=>{
+ const {id,value}=event.target;
+ if(view!=='history'||!historyID||!Object.hasOwn(recordFields,id))return;
+ const field=recordFields[id];
+ recordsFilter[field]=field==='weight'?Number(value):value;
+ if(field==='group')recordsFilter.weight=null;
+ render();
+ $('#'+id)?.focus?.();
+});
+
 function history(){
  const sessions=db().history.filter(s=>s.movements.some(m=>m.sets.length)).sort((a,b)=>b.started-a.started);
  if(historyID&&identityConflict(db(),historyID))return `<button class="text-button" data-action="history-back">‹ 全部历史</button><h1>先整理动作关联</h1>${identityWarning(historyID)}<button class="outline wide" data-action="history-unconfirmed">按训练查看原始记录</button>`;
- if(historyID){const matched=sessions.filter(s=>s.movements.some(m=>m.exercise.id===historyID&&m.sets.length)),name=exerciseName(historyID);return `<button class="text-button" data-action="history-back">‹ 全部历史</button><h1>${esc(name)}</h1>${matched.length?matched.map(s=>historySession(s,historyID)).join(''):'<div class="empty"><p>还没有已完成的训练记录。</p></div>'}`;}
+ if(historyID){
+  const matched=sessions.filter(s=>s.movements.some(m=>m.exercise.id===historyID&&m.sets.length)),name=exerciseName(historyID);
+  const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+  const records=recordsPanel(db(),historyID,recordsFilter,{now:Date.now(),timeZone,esc,fmt});
+  const entries=matched.length?matched.map(s=>historySession(s,historyID)).join(''):'<div class="empty"><p>还没有已完成的训练记录。</p></div>';
+  return `<button class="text-button" data-action="history-back">‹ 全部历史</button><h1>${esc(name)}</h1>${records}${entries}`;
+ }
  const seen=new Set(),exercises=sessions.flatMap(s=>s.movements).filter(m=>m.sets.length&&!identityConflict(db(),m.exercise.id)&&!seen.has(m.exercise.id)&&seen.add(m.exercise.id));
  const deleted=[...(db().deletedHistory??[])].sort((a,b)=>b.deletedAt-a.deletedAt);
  return `<p class="eyebrow">每一次训练，都有迹可循</p><h1>训练历史</h1>${identityWarnings()}<div class="segmented"><button data-action="history-tab" data-tab="exercise" class="${tab==='exercise'?'selected':''}">按动作</button><button data-action="history-tab" data-tab="session" class="${tab==='session'?'selected':''}">按训练</button><button data-action="history-tab" data-tab="deleted" class="${tab==='deleted'?'selected':''}">最近删除${deleted.length?` (${deleted.length})`:''}</button></div>${tab==='deleted'?`<p class="footnote">已删除的训练不计入历史和上次表现，可随时恢复。备份也会保留这些记录，不会自动清空。</p>${deleted.length?deleted.map(entry=>historySession(entry.session,null,true)).join(''):'<div class="empty"><p>没有已删除的训练。</p></div>'}`:!sessions.length?'<div class="empty"><h2>还没有完成的训练</h2><p>训练结束后，重量和次数会出现在这里。</p></div>':tab==='session'?sessions.map(s=>historySession(s)).join(''):`<div class="history-list">${exercises.map(m=>`<button data-action="history-open" data-id="${m.exercise.id}" class="history-item"><div><b>${esc(exerciseName(m.exercise.id))}</b><small>${m.sets.map(s=>bodyUI.setText(s,m.exercise.unit)+' × '+s.reps).join(' / ')}</small></div><span>›</span></button>`).join('')}</div>`}`;

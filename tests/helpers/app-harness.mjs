@@ -4,6 +4,7 @@ import * as data from '../../dist/data.js';
 import * as healthUI from '../../dist/health-ui.js';
 import * as bodyUI from '../../dist/body-ui.js';
 import * as performance from '../../dist/performance.js';
+import * as recordsUI from '../../dist/records-ui.js';
 
 export class Storage {
   values = new Map();
@@ -82,10 +83,10 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     get(name) { return this.fields[name] ?? null; }
     has(name) { return Object.hasOwn(this.fields, name); }
   }
-  const context = vm.createContext({__data: data, __healthUI: healthUI, __bodyUI:bodyUI, __performance: performance, document, localStorage: storage, structuredClone, FormData,
+  const context = vm.createContext({__data: data, __healthUI: healthUI, __bodyUI:bodyUI, __performance: performance, __recordsUI: recordsUI, document, localStorage: storage, structuredClone, FormData,
     navigator: {onLine: true}, window: {addEventListener() {}}, matchMedia: () => ({matches: true}),
     setTimeout: () => 1, clearTimeout() {}, setInterval() {}, scrollTo() {}, ...globals});
-  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;').replace(/import \{([^}]+)\} from '[^']*body-ui[^']+';/, 'const {$1} = __bodyUI;').replace(/import \{([^}]+)\} from '[^']*performance[^']+';/, 'const {$1} = __performance;');
+  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;').replace(/import \{([^}]+)\} from '[^']*body-ui[^']+';/, 'const {$1} = __bodyUI;').replace(/import \{([^}]+)\} from '[^']*performance[^']+';/, 'const {$1} = __performance;').replace(/import \{([^}]+)\} from '[^']*records-ui[^']+';/, 'const {$1} = __recordsUI;');
   vm.runInContext(source, context, {filename: 'dist/app.js'});
   return {
     storage,

@@ -1,0 +1,5 @@
+Chrome 156.0.8078.80 · 320px · isolated 127.0.0.1 · synthetic records
+PASS failed record module install preserves the v1.8.5 shell and data
+PASS automatic idle upgrade and real action detail filtering, grouping, gaps and narrow layout without storage writes
+PASS saved history edit recomputes PR and complete trend modules load offline
+PASS isolated v1.8.5 recovery offline, original v1.8.4 full restore, and re-upgrade preserve scores and history

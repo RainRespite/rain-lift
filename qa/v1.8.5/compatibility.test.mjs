@@ -17,7 +17,8 @@ import {performanceDetails, setPerformance} from '../../dist/performance.js';
 
 const oldPath=mkdtempSync(join(tmpdir(),'rainlift-184-test-'));
 after(()=>rmSync(oldPath,{recursive:true,force:true}));
-unpackBaseline(oldPath);
+const baselineTag=process.env.RAINLIFT_COMPAT_BASELINE??'v1.8.4';
+unpackBaseline(oldPath,baselineTag);
 const fromOld = name => import(pathToFileURL(join(oldPath,'dist',name)).href);
 const [old,oldBackup,oldUI]=await Promise.all(['data.js','backup.js','body-ui.js'].map(fromOld));
 const now=Date.parse('2026-11-05T01:00:00Z');
@@ -50,7 +51,7 @@ const fixture = (annotated=true) => {
  return {storage,db};
 };
 
-test('original full file → v1.8.5 → quick set keeps authoritative v2, exact v1 and independent parts',()=>{
+test(`original ${baselineTag} full file → current → quick set keeps authoritative v2, exact v1 and independent parts`,()=>{
  const {storage,db}=fixture(false);
  const original=oldBackup.exportFull(storage,db,now),target=new Storage();
  backup.restoreFull(target,backup.parseFull(JSON.stringify(original)));
@@ -84,7 +85,7 @@ test('old v1 active workout and Swift training export are accepted without reint
  assert.equal(imported.active.movements[0].sets[0].performance,undefined);
 });
 
-test('same storage writes by original v1.8.4 and re-upgrade retain annotations and invalidate changed basis',()=>{
+test(`same storage writes by original ${baselineTag} and re-upgrade retain annotations and invalidate changed basis`,()=>{
  const {storage,db}=fixture();
  const before=backup.exportFull(storage,db,now).parts;
  const set=db.active.movements[0].sets[0],prior=structuredClone(set.performance);

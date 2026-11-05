@@ -1,6 +1,6 @@
-import {HEALTH_KEY,HEALTH_MAX_BYTES,HealthRepository,parseHealthImport,healthSummary,healthRecordKey} from './health.js?v=1.8.5';
-import {generateAIReport,reportToText} from './ai-report.js?v=1.8.5';
-import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,LOAD_TYPES,ExerciseMetaRepository,listExerciseLoadSettings,parseExerciseMetaImport,getBulkExternalPreview,getSessionBodyWeight} from './exercise-meta.js?v=1.8.5';
+import {HEALTH_KEY,HEALTH_MAX_BYTES,HealthRepository,parseHealthImport,healthSummary,healthRecordKey} from './health.js?v=1.8.6';
+import {generateAIReport,reportToText} from './ai-report.js?v=1.8.6';
+import {EXERCISE_META_KEY,EXERCISE_META_MAX_BYTES,LOAD_TYPES,ExerciseMetaRepository,listExerciseLoadSettings,parseExerciseMetaImport,getBulkExternalPreview,getSessionBodyWeight} from './exercise-meta.js?v=1.8.6';
 
 const labels={steps:'步数',sleep:'有效睡眠',resting_heart_rate:'静息心率',hrv:'HRV（SDNN）',workout:'运动时长'};
 const units={count:'步',min:'分钟',bpm:'次/分',ms:'毫秒'};
