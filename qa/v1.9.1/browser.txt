@@ -1,0 +1,5 @@
+Chrome 156.0.8078.80 · 320px · isolated 127.0.0.1 · synthetic records
+PASS exact v1.9.0 reproduction, failed install safety and adjacent upgrade without rewriting data
+PASS group switching, working target, RPE/timer and manual entry default/override in the live 320px UI
+PASS simulated background/foreground preserves an unblurred weight, and PR plus working-set report open offline
+PASS unique v1.9.0 recovery cache and offline open, original v1.9.0 six-part restore, and v1.9.1 re-upgrade

@@ -1,6 +1,6 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.9.0';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.0';
-import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.0';
+import {validateLoad,validateSnapshot} from './load.js?v=1.9.1';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.1';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.1';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const uid=()=>crypto.randomUUID();

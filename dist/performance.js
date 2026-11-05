@@ -1,5 +1,10 @@
 export const SET_TYPES = {normal: '普通', warmup: '热身', drop: '递减'};
 export const EFFORT_DISPLAYS = ['off', 'rpe', 'rir'];
+export function setTypeOf(set) {
+  const type=set?.performance?.setType;
+  return typeof type==='string'&&Object.hasOwn(SET_TYPES,type)?type:null;
+}
+export const isWorkingSet = set => setTypeOf(set) === 'normal';
 
 const finite = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const hasKeys = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -62,6 +67,10 @@ export function performanceCounts(details) {
     if (item?.effortNeedsConfirmation) counts.effortNeedsConfirmation++;
   }
   return counts;
+}
+
+export function trainingSetCounts(sets) {
+  return {totalRecordedSets: sets.length, ...performanceCounts(sets.map(performanceDetails))};
 }
 
 export function performanceCountText(counts, showEffort = true) {

@@ -1,0 +1,16 @@
+✔ original v1.9.0 full file → current → quick set keeps authoritative v2, exact v1 and independent parts (23.873291ms)
+✔ old v1 active workout and Swift training export are accepted without reinterpreting old sets (1.959667ms)
+✔ same storage writes by original v1.9.0 and re-upgrade retain annotations and invalidate changed basis (1.611792ms)
+✔ new file → original full restore/export → new full restore preserves every part including active and deleted (2.654625ms)
+✔ training file roundtrip through original retains performance, and changed legacy confirmations go to the before-image (1.167625ms)
+✔ interrupted six-part recovery preserves the exact before-image and restores marked groups on retry (1.906167ms)
+✔ exact v1.9.0 six-part full backup restores through v1.9.1 and back after a classified set is saved (26.912375ms)
+✔ downgrade and re-upgrade never interpret a legacy backup as ordinary working history (1.350583ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.123208

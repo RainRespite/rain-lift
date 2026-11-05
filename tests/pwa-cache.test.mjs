@@ -149,7 +149,7 @@ test('Pages and Sites ship identical versioned shells and the worker never clear
  const sw=fs.readFileSync(new URL('../dist/sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(sw,/localStorage|indexedDB|Clear-Site-Data|\.clear\(/);
  for(const name of ['app.js','data.js','health.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','performance.js','records.js','records-ui.js','progression.js','style.css'])assert.ok(sw.includes('./'+name+'?v='+version),name);
- for(const name of ['app.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','performance.js','records.js','records-ui.js','progression.js']){
+ for(const name of ['app.js','load.js','health-ui.js','ai-report.js', 'exercise-meta.js','body-profile.js','load.js','backup.js','body-ui.js','performance.js','records.js','records-ui.js','progression.js']){
   for(const match of fs.readFileSync(new URL('../dist/'+name,import.meta.url),'utf8').matchAll(/from '(\.\/[^']+)'/g))assert.equal(new URL(match[1],scope).searchParams.get('v'),version);
  }
 });

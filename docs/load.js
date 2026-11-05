@@ -1,3 +1,5 @@
+import {setTypeOf} from './performance.js?v=1.9.1';
+
 // Pure contracts shared by data, UI and report. No storage or name inference.
 export const LOAD_MODES=['external','assisted','unknown','bodyweight_plus_extra'];
 const finite=(v,min,max)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
@@ -22,13 +24,32 @@ export function resolveLoad(set,unit){
  const load=set.load;
  return {...load,recordedWeight:set.weight,referenceTotalKg:load.mode==='bodyweight_plus_extra'&&load.bodyWeightKg!==null?Math.round((load.bodyWeightKg+load.extraWeightKg)*1e6)/1e6:null};
 }
-export function suggestedLoad(training,m,mode){
- if(m.overrideMode===mode&&m.overrideWeight!=null)return m.overrideWeight;
- const same=s=>s.load?.mode===mode&&s.load.unit===m.exercise.unit;
- const local=m.sets.filter(same).at(-1);if(local)return local.weight;
- const movements=[...training.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).filter(x=>x.exercise.id===m.exercise.id&&x.exercise.unit===m.exercise.unit);
- for(const prior of movements){const sets=prior.sets.filter(same);if(sets.length)return (sets[m.sets.length]??sets.at(-1)).weight;}
- if(mode==='bodyweight_plus_extra')return 0;
- // A changed mode must not inherit an old override or a new record of another mode.
- const old=movements.flatMap(x=>x.sets).find(s=>!s.load);return old?.weight??m.exercise.weight;
+export function matchesLoadMode(set,unit,mode){
+ if(mode==='legacy')return set.load===undefined;
+ return set.load?.mode===mode&&set.load?.unit===unit;
+}
+
+export function weightSuggestion(training,m,mode,setType='normal',{allowHistory=true}={}){
+ if(mode==='blocked')return {weight:0,source:'blocked'};
+ if(m.overrideWeight!=null&&(m.overrideMode===mode||mode==='legacy'&&m.overrideMode==null)){
+  return {weight:m.overrideWeight,source:'manual'};
+ }
+ if(allowHistory){
+  const matches=set=>setTypeOf(set)===setType&&matchesLoadMode(set,m.exercise.unit,mode);
+  const local=m.sets.filter(matches).at(-1);
+  if(local)return {weight:local.weight,source:'current'};
+  const history=[...training.history].sort((a,b)=>b.started-a.started);
+  for(const session of history){
+   for(const prior of session.movements){
+    if(prior.exercise.id!==m.exercise.id||prior.exercise.unit!==m.exercise.unit)continue;
+    const match=prior.sets.find(matches);
+    if(match)return {weight:match.weight,source:'history'};
+   }
+  }
+ }
+ return {weight:mode==='bodyweight_plus_extra'?0:m.exercise.weight,source:'default'};
+}
+
+export function suggestedLoad(training,m,mode,setType='normal'){
+ return weightSuggestion(training,m,mode,setType).weight;
 }

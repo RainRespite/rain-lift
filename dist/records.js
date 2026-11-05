@@ -1,6 +1,7 @@
-import {identityConflict} from './data.js?v=1.9.0';
-import {healthDateKey} from './health.js?v=1.9.0';
-import {validateLoad} from './load.js?v=1.9.0';
+import {identityConflict} from './data.js?v=1.9.1';
+import {healthDateKey} from './health.js?v=1.9.1';
+import {validateLoad} from './load.js?v=1.9.1';
+import {isWorkingSet,setTypeOf} from './performance.js?v=1.9.1';
 
 const DAY = 86400000;
 const MASS_UNITS = new Set(['kg','kgs','kilogram','kilograms','公斤','千克','lb','lbs','pound','pounds','磅']);
@@ -62,8 +63,7 @@ export function deriveExerciseRecords(training,exerciseID,{range='30',now=Date.n
       for(const set of movement.sets){
         if(!validSet(set)||typeof unit!=='string'){excluded.invalid++;continue;}
         if(set.date>now){excluded.future++;continue;}
-        const type=set.performance?.setType;
-        if(type!=='normal'){excluded[type==='warmup'||type==='drop'?type:'unclassified']++;continue;}
+        if(!isWorkingSet(set)){excluded[setTypeOf(set)??'unclassified']++;continue;}
         if(set.load===undefined){excluded.unknownLoad++;continue;}
         try{validateLoad(set.load,set.weight,unit);}catch{excluded.invalid++;continue;}
         const {mode}=set.load;

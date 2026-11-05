@@ -9,7 +9,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const baselines={
   'v1.8.4':'00afdb4188f8c2e716e0465ee3e1bd975adb3415',
   'v1.8.5':'859da7955840c21528d572ab6d3d4fd9cb21ab0e',
-  'v1.8.6':'6334d771bc5b8384ad99afa8d257931debc17753'
+  'v1.8.6':'6334d771bc5b8384ad99afa8d257931debc17753',
+  'v1.9.0':'f5a232e4e4c599e0a25a967cd2ccefef923a8d1f'
 };
 const args = process.argv.slice(2);
 const baselineTag=args[0]==='--baseline'?args.splice(0,2)[1]:'v1.8.4';
@@ -20,7 +21,7 @@ const buildID = args[3] ?? randomUUID();
 if (!baseline || args[0] !== '--out' || !outputArg || !isAbsolute(outputArg)
     || ![2,4].includes(args.length) || (args.length === 4 && args[2] !== '--build-id')
     || !/^[a-z0-9-]{1,60}$/.test(buildID)) {
-  throw Error('Usage: node scripts/prepare-v1.8.5-recovery.mjs [--baseline v1.8.4|v1.8.5|v1.8.6] --out /absolute/new-directory [--build-id id]');
+  throw Error('Usage: node scripts/prepare-v1.8.5-recovery.mjs [--baseline v1.8.4|v1.8.5|v1.8.6|v1.9.0] --out /absolute/new-directory [--build-id id]');
 }
 const dest = resolve(realpathSync(dirname(resolve(outputArg))), basename(resolve(outputArg)));
 const withinRepo = relative(realpathSync(root), dest);

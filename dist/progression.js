@@ -1,4 +1,4 @@
-import {performanceDetails} from './performance.js?v=1.9.0';
+import {isWorkingSet,performanceDetails} from './performance.js?v=1.9.1';
 
 export const LOOKBACK_DAYS = 30;
 export const MAX_PROGRESS_RPE = 8;
@@ -34,7 +34,6 @@ export function progressionTarget(exercise){
 
 const sameTarget = (saved,target) => saved?.schemaVersion===1&&saved.target===target.target
   &&saved.minReps===target.minReps&&saved.maxReps===target.maxReps;
-const ordinary = set => set.performance?.setType==='normal';
 const hold = reason => ({kind:'hold',reason});
 
 function loadProblem(set,unit,weight,now){
@@ -56,7 +55,7 @@ function nextReps(m,unit,weight,target,now){
   // Compare the latest actual set, even when a later warm-up or drop set
   // makes the previous working set unsuitable as the immediate reference.
   const last=m.sets.reduce((latest,set)=>!latest||set.date>=latest.date?set:latest,null);
-  if(!ordinary(last))return hold('latest_not_working');
+  if(!isWorkingSet(last))return hold('latest_not_working');
   const reason=loadProblem(last,unit,weight,now)||effortProblem(last);
   if(reason)return hold(reason);
   if(last.progressionTarget&&!sameTarget(last.progressionTarget,target))return hold('different_target');
@@ -84,7 +83,7 @@ function increaseWeight(training,m,unit,weight,target,now){
     if(movements.length!==1)return hold('duplicate_action');
     const [prior]=movements;
     if(prior.exercise.unit!==unit)return hold('different_load');
-    const work=prior.sets.filter(ordinary);
+    const work=prior.sets.filter(isWorkingSet);
     if(work.length<target.target)return hold('too_few_sets');
     if(work.some(set=>set.progressionTarget===undefined))return hold('no_target_snapshot');
     if(prior.sets.some(set=>set.progressionTarget&&!sameTarget(set.progressionTarget,target))){
@@ -111,6 +110,6 @@ export function recommendProgression(training,m,{mode,weight,now=Date.now(),iden
   if(training.active?.movements.some(other=>other.id!==m.id&&other.exercise.id===m.exercise.id))return hold('duplicate_action');
   if(nextSetType!=='normal'||nextToFailure)return hold('different_next_set');
   if(!weightValue(weight)||!validTime(now))return hold('invalid_weight');
-  if(m.sets.some(ordinary))return nextReps(m,m.exercise.unit,weight,target,now);
+  if(m.sets.some(isWorkingSet))return nextReps(m,m.exercise.unit,weight,target,now);
   return increaseWeight(training,m,m.exercise.unit,weight,target,now);
 }

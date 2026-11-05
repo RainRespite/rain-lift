@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 export const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const BASELINE = '00afdb4188f8c2e716e0465ee3e1bd975adb3415';
 
-const verified={'v1.8.4':BASELINE,'v1.8.5':'859da7955840c21528d572ab6d3d4fd9cb21ab0e','v1.8.6':'6334d771bc5b8384ad99afa8d257931debc17753'};
+const verified={'v1.8.4':BASELINE,'v1.8.5':'859da7955840c21528d572ab6d3d4fd9cb21ab0e','v1.8.6':'6334d771bc5b8384ad99afa8d257931debc17753','v1.9.0':'f5a232e4e4c599e0a25a967cd2ccefef923a8d1f'};
 export function unpackBaseline(target,tag='v1.8.4') {
   if(!Object.hasOwn(verified,tag))throw Error('Unsupported compatibility baseline ' + tag);
   const baseline=verified[tag];

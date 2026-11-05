@@ -65,3 +65,7 @@
 .progression-panel strong{display:block;margin:5px 0;color:var(--accent)}
 .progression-panel p{margin:4px 0 0}
 .progression-panel .progression-apply{min-height:44px;margin-top:8px;padding:7px 12px;font-size:14px}
+
+.weight-hint{margin:4px 0 10px}
+.weight-hint:empty{display:none}
+.last-sets .text-button{display:block}

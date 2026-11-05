@@ -1,4 +1,4 @@
-import {identityConflict} from './data.js?v=1.9.0';
+import {identityConflict} from './data.js?v=1.9.1';
 
 // Separate local metadata: never changes training snapshots or health storage.
 export const EXERCISE_META_KEY='rainlift.exercise-meta.v2';

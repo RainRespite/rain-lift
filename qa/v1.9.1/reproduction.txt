@@ -1,0 +1,76 @@
+✖ normal prefill excludes historical warmups and drop sets, including after two warmups (13.552042ms)
+✖ warmup, drop, unclassified and failure marks do not inflate working target; edit and undo recompute (1.466292ms)
+✖ working report ignores changed warmups while retaining all-set data and never pairs different types (1.718ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 57.015209
+
+✖ failing tests:
+
+test at tests/training-logic.test.mjs:36:1
+✖ normal prefill excludes historical warmups and drop sets, including after two warmups (13.552042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  20 !== 40
+
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.9.1/tests/training-logic.test.mjs:41:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.start (node:internal/test_runner/test:1177:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 40,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/training-logic.test.mjs:52:1
+✖ warmup, drop, unclassified and failure marks do not inflate working target; edit and undo recompute (1.466292ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /已完成 <b class="accent">1<\/b> \/ 3/. Input:
+
+  '<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">本机保存</span></header><main><div class="row"><p class="eyebrow">拉 · 背部与二头</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作"><button data-action="select" data-id="d978c3ee-eaad-4a8f-848a-28f7689bf204" class="selected">宽距高位下拉 <small>3</small></button><button data-action="select" data-id="0f727988-d414-40a5-ac21-4eb98d58f073" class="">坐姿划船</button><button data-action="select" data-id="c7655f5f-c20e-4c8d-8bf5-b03406ff0a55" class="">哑铃弯举</button></div><div class="training-heading"><h1>宽距高位下拉</h1><div class="row"><span class="muted">已完成 <b class="accent">3</b> / 3 组</span><span class="badge">下一组 · 04</span></div></div><section class="record-card"><label for="weight" class="weight-label">本组重量 <span>kg</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="external" inputmode="decimal" type="number" min="0" max="10000" step="any" value="40" aria-label="本组重量"><button data-action="weight-plus" aria-label="增加重量">＋</button></div><div class="next-set-controls" role="group" aria-label="下一组标记"><button data-action="next-set-type" data-type="normal" aria-pressed="true">普通</button><button data-action="next-set-type" data-type="warmup" aria-pressed="false">热身</button><button data-action="next-set-type" data-type="drop" aria-pressed="false">递减</button><button data-action="next-set-failure" aria-pressed="false">力竭</button></div><div class="reps-buttons"><button data-action="record" data-reps="8" aria-label="完成8次"><strong>8</strong><span>次 · 完成</span></button><button data-action="record" data-reps="9" aria-label="完成9次"><strong>9</strong><span>次 · 完成</span></button><button data-action="record" data-reps="10" aria-label="完成10次"><strong>10</strong><span>次 · 完成</span></button></div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="c6a5254d-8998-46a9-a589-4f74431ed12f">查看历史</button></div><p class="muted">第一次记录，从今天开始。</p></section><section><div class="row section-heading"><h2>本次记录 <span class="count">3</span></h2><button class="text-button" data-action="undo">撤销上一组</button></div><p class="footnote set-counts">普通工作组 1 · 热身 2 · 递减 0 · 未分类 0 · 力竭标记 1 · 已评分 0</p><div class="set-list"><button class="set-row" data-action="set-edit" data-id="cb79d630-8a19-4de9-b326-271cf22ce7bf"><span class="set-number">01</span><b>20 kg<small class="set-performance">热身</small></b><span>× 8 次</span><span class="edit-label">修改</span></button><button class="set-row" data-action="set-edit" data-id="3f0c30b8-129f-4bec-843a-428c247411e8"><span class="set-number">02</span><b>30 kg<small class="set-performance">热身</small></b><span>× 8 次</span><span class="edit-label">修改</span></button><button class="set-row" data-action="set-edit" data-id="bcc09808-3355-4559-936b-137598cc4598"><span class="set-number">03</span><b>40 kg<small class="set-performance">普通 · 力竭</small></b><span>× 8 次</span><span class="edit-label">修改</span></button></div></section><button class="outline wide" data-action="session-bodyweight">本次参考体重</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…"></textarea><div class="row end-row"><span class="muted">共 3 组</span><button class="outline" data-action="finish">结束训练</button></div></main><nav class="bottom" aria-label="主导航"><button data-action="nav" data-view="today" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8v8m4-11v14m8-14v14m4-11v8M8 12h8"/></svg><span>训练</span></button><button data-action="nav" data-view="history" class="" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4m0 16h17M8 15l4-5 4 3 5-8"/></svg><span>历史</span></button><button data-action="nav" data-view="settings" class="" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg><span>设置</span></button></nav>'
+
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.9.1/tests/training-logic.test.mjs:56:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">本机保存</span></header><main><div class="row"><p class="eyebrow">拉 · 背部与二头</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作"><button data-action="select" data-id="d978c3ee-eaad-4a8f-848a-28f7689bf204" class="selected">宽距高位下拉 <small>3</small></button><button data-action="select" data-id="0f727988-d414-40a5-ac21-4eb98d58f073" class="">坐姿划船</button><button data-action="select" data-id="c7655f5f-c20e-4c8d-8bf5-b03406ff0a55" class="">哑铃弯举</button></div><div class="training-heading"><h1>宽距高位下拉</h1><div class="row"><span class="muted">已完成 <b class="accent">3</b> / 3 组</span><span class="badge">下一组 · 04</span></div></div><section class="record-card"><label for="weight" class="weight-label">本组重量 <span>kg</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="external" inputmode="decimal" type="number" min="0" max="10000" step="any" value="40" aria-label="本组重量"><button data-action="weight-plus" aria-label="增加重量">＋</button></div><div class="next-set-controls" role="group" aria-label="下一组标记"><button data-action="next-set-type" data-type="normal" aria-pressed="true">普通</button><button data-action="next-set-type" data-type="warmup" aria-pressed="false">热身</button><button data-action="next-set-type" data-type="drop" aria-pressed="false">递减</button><button data-action="next-set-failure" aria-pressed="false">力竭</button></div><div class="reps-buttons"><button data-action="record" data-reps="8" aria-label="完成8次"><strong>8</strong><span>次 · 完成</span></button><button data-action="record" data-reps="9" aria-label="完成9次"><strong>9</strong><span>次 · 完成</span></button><button data-action="record" data-reps="10" aria-label="完成10次"><strong>10</strong><span>次 · 完成</span></button></div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="c6a5254d-8998-46a9-a589-4f74431ed12f">查看历史</button></div><p class="muted">第一次记录，从今天开始。</p></section><section><div class="row section-heading"><h2>本次记录 <span class="count">3</span></h2><button class="text-button" data-action="undo">撤销上一组</button></div><p class="footnote set-counts">普通工作组 1 · 热身 2 · 递减 0 · 未分类 0 · 力竭标记 1 · 已评分 0</p><div class="set-list"><button class="set-row" data-action="set-edit" data-id="cb79d630-8a19-4de9-b326-271cf22ce7bf"><span class="set-number">01</span><b>20 kg<small class="set-performance">热身</small></b><span>× 8 次</span><span class="edit-label">修改</span></button><button class="set-row" data-action="set-edit" data-id="3f0c30b8-129f-4bec-843a-428c247411e8"><span class="set-number">02</span><b>30 kg<small class="set-performance">热身</small></b><span>× 8 次</span><span class="edit-label">修改</span></button><button class="set-row" data-action="set-edit" data-id="bcc09808-3355-4559-936b-137598cc4598"><span class="set-number">03</span><b>40 kg<small class="set-performance">普通 · 力竭</small></b><span>× 8 次</span><span class="edit-label">修改</span></button></div></section><button class="outline wide" data-action="session-bodyweight">本次参考体重</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…"></textarea><div class="row end-row"><span class="muted">共 3 组</span><button class="outline" data-action="finish">结束训练</button></div></main><nav class="bottom" aria-label="主导航"><button data-action="nav" data-view="today" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8v8m4-11v14m8-14v14m4-11v8M8 12h8"/></svg><span>训练</span></button><button data-action="nav" data-view="history" class="" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4m0 16h17M8 15l4-5 4 3 5-8"/></svg><span>历史</span></button><button data-action="nav" data-view="settings" class="" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg><span>设置</span></button></nav>',
+    expected: /已完成 <b class="accent">1<\/b> \/ 3/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/training-logic.test.mjs:69:1
+✖ working report ignores changed warmups while retaining all-set data and never pairs different types (1.718ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'all_recorded_descriptive'
+
+      at TestContext.<anonymous> (file:///Users/rain/Documents/ChatGPT/Rain%E2%80%98s%20fitness/rain-lift-v1.9.1/tests/training-logic.test.mjs:76:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'all_recorded_descriptive',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
