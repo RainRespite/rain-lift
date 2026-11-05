@@ -1,0 +1,7 @@
+Chrome 156.0.8078.80 · isolated 127.0.0.1 · synthetic data
+PASS incomplete v1.8.5 install leaves the running v1.8.4 shell and data usable
+PASS original → candidate retains the live session and rejects writes from a stale old tab
+PASS 320px touch-layout emulation, RIR 5+, stale edit rejection, unchanged timer and offline reload
+PASS original v1.8.4 imports and re-exports both files, edits a set, appends an unclassified set, saves a plan and restores history
+PASS recovery build activated with a unique cache and reopened offline with identical storage
+PASS re-upgrade preserves every stored field and visibly excludes the original rating from current coverage

@@ -4,6 +4,7 @@
 
 | 版本 | 主要工作及版本位置 | 实际测试记录 | 发布与设备验证 |
 | --- | --- | --- | --- |
+| v1.8.5 | 组类型、力竭、RPE/RIR；[本地交付与恢复](v1.8.5-delivery.md)，本地标签 `v1.8.5-rc.1` | [270 项](../qa/v1.8.5/tests-final.txt)与[兼容 6 项](../qa/v1.8.5/compatibility.txt)通过 | 本地候选，隔离 Chrome 更新/回滚/离线通过，iPhone 真机待验收 |
 | v1.8.4 | 精简重量显示，同一动作的历史标题使用当前名称；[修改报告](../CHANGELOG.md#v184--2026-11-04) | 259 项通过、0 失败 | 原 GitHub Pages 手机入口，iPhone 真机待验收 |
 | v1.8.3 | 通过 iPhone 快捷指令启动组间系统计时；[修改报告](../CHANGELOG.md#v183--2026-11-04) | 259 项通过、0 失败 | GitHub Pages 发布成功，17 项线上响应一致；iPhone 真机待验收 |
 | v1.8.2 | 按需体重、固定快照、自重额外负重与完整备份；[交付详情](v1.8.2-delivery.md)，分支 `codex/body-profile-v1.8.2` | 基线 [221 项](../qa/v1.8.2/baseline-tests.txt)，最终 [255 项通过](../qa/v1.8.2/tests-final.txt)；[资源校验](../qa/v1.8.2/compatibility.json) | 用户已授权原手机入口发布；状态见 [发布记录](v1.8.2-release.md)。隔离桌面合成浏览器和文件恢复通过，iPhone 真机待验收 |

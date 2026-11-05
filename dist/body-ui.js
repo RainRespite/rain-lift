@@ -1,8 +1,8 @@
-import {start,record,identityConflict} from './data.js?v=1.8.4';
-import {ProfileRepository,PROFILE_KEY,profileSnapshot} from './body-profile.js?v=1.8.4';
-import {makeLoad,resolveLoad,suggestedLoad,unknownSnapshot} from './load.js?v=1.8.4';
-import {getExerciseLoadType} from './exercise-meta.js?v=1.8.4';
-import {exportFull,parseFull,restoreFull,restoreTrainingOnly,restoreFingerprint,recoverRestore,JOURNAL_KEY,FULL_BEFORE_KEY} from './backup.js?v=1.8.4';
+import {start,record,identityConflict} from './data.js?v=1.8.5';
+import {ProfileRepository,PROFILE_KEY,profileSnapshot} from './body-profile.js?v=1.8.5';
+import {makeLoad,resolveLoad,suggestedLoad,unknownSnapshot} from './load.js?v=1.8.5';
+import {getExerciseLoadType} from './exercise-meta.js?v=1.8.5';
+import {exportFull,parseFull,restoreFull,restoreTrainingOnly,restoreFingerprint,recoverRestore,JOURNAL_KEY,FULL_BEFORE_KEY} from './backup.js?v=1.8.5';
 
 export function prepareStorage(raw){
  let recoveryError=null;try{recoverRestore(raw);}catch(error){recoveryError='完整恢复尚未回滚，已停止全部写入：'+error.message;}
@@ -17,7 +17,7 @@ export function createBodyUI({storage,rawStorage=storage,training,metadata,chang
  function mode(m,session=training().active){if(session?.loadSchemaVersion!==1)return 'legacy';try{const type=getExerciseLoadType(training(),m.exercise,metadata());return type==='bodyweight'?(m.exercise.unit==='kg'?'bodyweight_plus_extra':'unknown'):type;}catch{return 'blocked';}}
  function suggested(d,m){m=d.active?.movements.find(x=>x.id===m.id)??m;if(identityConflict(d,m.exercise.id))return mode(m)==='bodyweight_plus_extra'?0:m.exercise.weight;if(mode(m)==='blocked')return 0;if(mode(m)==='legacy'){const prior=[...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).filter(x=>x.exercise.id===m.exercise.id&&x.exercise.unit===m.exercise.unit).map(x=>x.sets.filter(s=>!s.load)).find(sets=>sets.length);return m.overrideWeight??prior?.[m.sets.length]?.weight??m.sets.filter(s=>!s.load).at(-1)?.weight??m.exercise.weight;}return suggestedLoad(d,m,mode(m));}
  function begin(d,id){const p=profile();start(d,id,profileSnapshot(p));}
- function recordSet(d,id,reps,weight,timed=true){const m=d.active?.movements.find(x=>x.id===id),kind=mode(m);const load=kind==='legacy'?undefined:makeLoad(kind,m.exercise.unit,weight,d.active.bodyWeightSnapshot??unknownSnapshot());return record(d,id,reps,weight,timed,Date.now(),load);}
+ function recordSet(d,id,reps,weight,timed=true,performance){const m=d.active?.movements.find(x=>x.id===id),kind=mode(m);const load=kind==='legacy'?undefined:makeLoad(kind,m.exercise.unit,weight,d.active.bodyWeightSnapshot??unknownSnapshot());return record(d,id,reps,weight,timed,Date.now(),load,performance);}
  function setText(set,unit){const load=resolveLoad(set,unit);if(load.mode==='bodyweight_plus_extra')return `自重参考 ${load.bodyWeightKg===null?'未知':fmt(load.bodyWeightKg)+' kg'} + 额外 ${fmt(load.extraWeightKg)} kg${load.referenceTotalKg===null?' · 总量未知':' · 参考总负重 '+fmt(load.referenceTotalKg)+' kg'}`;return (load.mode==='assisted'?'辅助 ':'')+fmt(set.weight)+' '+unit;}
  function panel(m){const s=training().active;if(s?.loadSchemaVersion!==1||mode(m)!=='bodyweight_plus_extra')return '';
   const snap=s.bodyWeightSnapshot;return `<section class="bodyweight-summary"><p>本次采用体重：<b>${snap.bodyWeightKg===null?'未设置':fmt(snap.bodyWeightKg)+' kg'}</b>${snap.bodyWeightUpdatedAt!==null?`<br><small>${snap.bodyWeightSource==='profile'?'档案上次更新':'本次参考值确认'}：${esc(stamp(snap.bodyWeightUpdatedAt))} · 沿用参考值</small>`:''}</p><button class="text-button" data-action="profile-open">修改档案体重</button><button class="text-button" data-action="body-session" data-session="${esc(s.id)}">更新本次引用 / 补充体重</button></section>`;
@@ -44,7 +44,7 @@ export function createBodyUI({storage,rawStorage=storage,training,metadata,chang
   else if(a==='full-import'){query('#full-import-file')?.click();}
   else return false;return true;
  }
- async function importFile(file){if(!file)return;try{const parsed=parseFull(await file.text()),fingerprint=restoreFingerprint(storage),d=JSON.parse(parsed.parts['rainlift.web.v2']??parsed.parts['rainlift.web.v1']),p=parsed.parts[PROFILE_KEY]?JSON.parse(parsed.parts[PROFILE_KEY]):null;confirmAction('恢复完整备份？',`将替换训练（${d.history.length}次历史）、健康、动作类型、档案及全部新增信息。当前体重 ${p?.current?.weightKg??'未设置'} kg。保存完整恢复前副本；最低版本 v1.8.2。`,'确认完整恢复',()=>{try{restoreFull(rawStorage,parsed,{expected:fingerprint,fallbackTraining:training()});onRestored();refresh();toast('完整备份已恢复');return true;}catch(e){toast('恢复失败：'+e.message);return false;}});}catch(e){toast('导入失败：'+e.message);}}
+ async function importFile(file){if(!file)return;try{const parsed=parseFull(await file.text()),fingerprint=restoreFingerprint(storage),d=JSON.parse(parsed.parts['rainlift.web.v2']??parsed.parts['rainlift.web.v1']),p=parsed.parts[PROFILE_KEY]?JSON.parse(parsed.parts[PROFILE_KEY]):null;confirmAction('恢复完整备份？',`将替换训练（${d.history.length}次历史）、健康、动作类型、档案及全部新增信息。当前体重 ${p?.current?.weightKg??'未设置'} kg。保存完整恢复前副本。包含组标记或评分时，用 1.8.5 或更新版本查看。`,'确认完整恢复',()=>{try{restoreFull(rawStorage,parsed,{expected:fingerprint,fallbackTraining:training()});onRestored();refresh();toast('完整备份已恢复');return true;}catch(e){toast('恢复失败：'+e.message);return false;}});}catch(e){toast('导入失败：'+e.message);}}
  function editSet(set,weight,reps,unit,bodyRaw){set.weight=weight;set.reps=reps;if(set.load){if(set.load.mode==='bodyweight_plus_extra'){const raw=String(bodyRaw??'').trim(),bw=raw===''?null:Number(raw);const snap=bw===set.load.bodyWeightKg?set.load:bw===null?unknownSnapshot():{bodyWeightKg:bw,bodyWeightSource:'manual_session',bodyWeightRevisionID:null,bodyWeightUpdatedAt:Date.now()};set.load=makeLoad(set.load.mode,unit,weight,snap);}else set.load=makeLoad(set.load.mode,unit,weight);}}
  return {page:profilePage,profile,mode,suggested,start:begin,record:recordSet,editSet,setText,panel,reference,referenceText,action,importFile,sessionDialog,fingerprint(){return restoreFingerprint(storage);},restoreTraining(data,expected=null){restoreTrainingOnly(rawStorage,data,{expected});onRestored();refresh();}};
 }

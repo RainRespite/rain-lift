@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import * as data from '../../dist/data.js';
 import * as healthUI from '../../dist/health-ui.js';
 import * as bodyUI from '../../dist/body-ui.js';
+import * as performance from '../../dist/performance.js';
 
 export class Storage {
   values = new Map();
@@ -30,6 +31,7 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     fields = {};
     constructor(attrs = {}) {
       this.attrs = attrs;
+      this.id = attrs.id ?? '';
       this.value = attrs.value ?? '';
       this.disabled = Object.hasOwn(attrs, 'disabled');
       for (const [key, value] of Object.entries(attrs)) if (key.startsWith('data-')) this.dataset[key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
@@ -80,10 +82,10 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     get(name) { return this.fields[name] ?? null; }
     has(name) { return Object.hasOwn(this.fields, name); }
   }
-  const context = vm.createContext({__data: data, __healthUI: healthUI, __bodyUI:bodyUI, document, localStorage: storage, structuredClone, FormData,
+  const context = vm.createContext({__data: data, __healthUI: healthUI, __bodyUI:bodyUI, __performance: performance, document, localStorage: storage, structuredClone, FormData,
     navigator: {onLine: true}, window: {addEventListener() {}}, matchMedia: () => ({matches: true}),
     setTimeout: () => 1, clearTimeout() {}, setInterval() {}, scrollTo() {}, ...globals});
-  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;').replace(/import \{([^}]+)\} from '[^']*body-ui[^']+';/, 'const {$1} = __bodyUI;');
+  const source = fs.readFileSync(new URL('../../dist/app.js', import.meta.url), 'utf8').replace(/^import \{([^}]+)\} from '[^']+';/, 'const {$1} = __data;').replace(/import \{([^}]+)\} from '[^']*health-ui[^']+';/, 'const {$1} = __healthUI;').replace(/import \{([^}]+)\} from '[^']*body-ui[^']+';/, 'const {$1} = __bodyUI;').replace(/import \{([^}]+)\} from '[^']*performance[^']+';/, 'const {$1} = __performance;');
   vm.runInContext(source, context, {filename: 'dist/app.js'});
   return {
     storage,
@@ -97,6 +99,12 @@ export function createAppHarness(database = data.initial(), {storage = new Stora
     action(action, dataset = {}) {
       const button = new Element(Object.fromEntries(Object.entries({action, ...dataset}).map(([key, value]) => ['data-' + key, value])));
       for (const listener of app.listeners.click ?? []) listener({target: button, preventDefault() {}});
+    },
+    async change(id, value) {
+      const target = document.querySelector('#' + id);
+      if (!target) throw new Error('Missing field: ' + id);
+      target.value = value;
+      for (const listener of app.listeners.change ?? []) await listener({target});
     },
     async file(id, file) {
       const target={id,files:[file],value:'selected'};

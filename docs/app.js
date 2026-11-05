@@ -1,6 +1,9 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,Repository} from './data.js?v=1.8.4';
-import {createHealthUI} from './health-ui.js?v=1.8.4';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.8.4';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository} from './data.js?v=1.8.5';
+import {createHealthUI} from './health-ui.js?v=1.8.5';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.8.5';
+import {SET_TYPES,effortLabel,performanceCountText,performanceCounts,performanceDetails,setPerformance} from './performance.js?v=1.8.5';
+
+const APP_VERSION='1.8.5';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
@@ -8,10 +11,11 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=>new Date(n).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
 let repo;try{repo=new Repository(store);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
 let view='today',selected=null,historyID=null,tab='exercise',lastTap=0,audio,awake=null,offlineReady=false;
+let nextSet=null;
 let serviceRegistration=null,offlineSetup=null,updateAvailable=false,lastUpdateCheck=0,updateChecking=false,updateState='联网后可检查更新';
 const healthUI=createHealthUI({storage:store,profile:()=>bodyUI.profile(),openModernSession:id=>bodyUI.sessionDialog(id),training:()=>repo.db,trainingError:()=>repo.loadError,esc,fmt,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,navigator});
 const db=()=>repo.db,movement=()=>db().active?.movements.find(m=>m.id===selected)??db().active?.movements[0];
-const bodyUI=createBodyUI({storage:store,rawStorage:localStorage,training:db,metadata:()=>healthUI.getMetadata(),change:mutate,preserve:preserveTrainingInputs,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,onRestored:()=>{repo=new Repository(store);healthUI.refresh();selected=null;historyID=null;announced=null;render();},esc,fmt});
+const bodyUI=createBodyUI({storage:store,rawStorage:localStorage,training:db,metadata:()=>healthUI.getMetadata(),change:mutate,preserve:preserveTrainingInputs,showDialog,confirmAction,toast,render,download,go:next=>{view=next;render();scrollTo(0,0);},query:$,onRestored:()=>{repo=new Repository(store);healthUI.refresh();selected=null;nextSet=null;historyID=null;announced=null;render();},esc,fmt});
 // Names follow one identity across current references; completed sessions remain snapshots.
 function syncExerciseName(d,e){
  if(identityConflict(d,e.id))throw Error('请先整理这个动作的旧历史关联。');
@@ -28,6 +32,7 @@ function unlockAudio(){try{audio??=new (window.AudioContext||window.webkitAudioC
 function beep(){try{if(audio?.state==='running'){const o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.frequency.value=740;g.gain.setValueAtTime(.15,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.5);o.start();o.stop(audio.currentTime+.5);}}catch{}}
 function render(){
  const active=db().active;
+ if(nextSet&&(nextSet.sessionID!==active?.id||nextSet.movementID!==movement()?.id))nextSet=null;
  $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():view==='health'?healthUI.page():view==='body'?bodyUI.page():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
  document.body.classList.toggle('has-timer',!!(active&&db().rest));updateClock();
 }
@@ -43,8 +48,51 @@ function identityResolver(id){
  });
 }
 function today(){return `<div class="page-heading"><div><p class="eyebrow">${date(Date.now())} · 今天</p><h1>今天练什么？</h1></div><button class="icon-button" data-action="plan-new" aria-label="创建计划">＋</button></div>${identityWarnings()}<button class="outline wide" data-action="profile-open">身体档案 / 修改体重</button><div class="plans">${db().plans.map((p,i)=>`<article class="plan-card"><div class="plan-index">PLAN / ${String(i+1).padStart(2,'0')}</div><div class="row"><h2>${esc(p.name)}</h2><button class="icon-button" data-action="plan-edit" data-id="${p.id}" aria-label="编辑${esc(p.name)}">···</button></div><p class="muted">${p.exercises.length} 个动作 <span class="sep">/</span> ${p.exercises.reduce((a,e)=>a+e.target,0)} 组</p><div class="plan-exercises">${p.exercises.map(e=>`<span>${esc(e.name)}</span>`).join('')}</div><button class="primary wide" data-action="start" data-id="${p.id}" ${p.exercises.length?'':'disabled'}>开始训练 <span>↗</span></button></article>`).join('')}</div><button class="outline wide" data-action="plan-new">＋ 创建训练计划</button><p class="footnote">示例计划可修改。完成一组，点一下次数就记好了。</p>${!matchMedia('(display-mode: standalone)').matches?'<aside class="install-note"><b>像 App 一样打开</b><p>在 iPhone Safari 中点“分享” → “添加到主屏幕”。首次联网打开后，等待设置页显示“离线已就绪”。</p></aside>':''}`;}
-function training(){const s=db().active,m=movement();return `<div class="row"><p class="eyebrow">${esc(s.name)}</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作">${s.movements.map(x=>`<button data-action="select" data-id="${x.id}" class="${x.id===m?.id?'selected':''}">${x.skipped?'跳过 · ':''}${esc(x.exercise.name)}${x.sets.length?` <small>${x.sets.length}</small>`:''}</button>`).join('')}</div>${m?`<div class="training-heading"><h1>${esc(m.exercise.name)}</h1><div class="row"><span class="muted">已完成 <b class="accent">${m.sets.length}</b> / ${m.exercise.target} 组</span><span class="badge">下一组 · ${String(m.sets.length+1).padStart(2,'0')}</span></div></div>${bodyUI.panel(m)}<section class="record-card"><label for="weight" class="weight-label">${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'} <span>${esc(m.exercise.unit)}</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="${bodyUI.mode(m)}" inputmode="decimal" type="number" min="0" max="10000" step="any" value="${bodyUI.suggested(db(),m)}" aria-label="${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'}"><button data-action="weight-plus" aria-label="增加重量">＋</button></div>${bodyUI.reference(m,bodyUI.suggested(db(),m))}<div class="reps-buttons">${m.exercise.reps.map(r=>`<button data-action="record" data-reps="${r}" aria-label="完成${r}次"><strong>${r}</strong><span>次 · 完成</span></button>`).join('')}</div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="${m.exercise.id}">查看历史</button></div>${identityConflict(db(),m.exercise.id)?identityWarning(m.exercise.id):previous(db(),m.exercise.id,m.exercise.unit)?`<div class="last-sets">${previous(db(),m.exercise.id,m.exercise.unit).sets.map((x,i)=>`<div><small>第 ${i+1} 组</small><b>${esc(bodyUI.setText(x,m.exercise.unit))} <span>× ${x.reps}</span></b></div>`).join('')}</div>`:'<p class="muted">第一次记录，从今天开始。</p>'}</section><section><div class="row section-heading"><h2>本次记录 <span class="count">${m.sets.length}</span></h2>${m.sets.length?'<button class="text-button" data-action="undo">撤销上一组</button>':''}</div>${m.sets.length?`<div class="set-list">${m.sets.map((x,i)=>`<button class="set-row" data-action="set-edit" data-id="${x.id}"><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}</b><span>× ${x.reps} 次</span><span class="edit-label">修改</span></button>`).join('')}</div>`:'<div class="empty-small">完成一组后，点上方次数按钮。</div>'}</section>`:'<div class="empty"><h1>添加今天的动作</h1><button class="primary" data-action="manage">选择动作</button></div>'}<button class="outline wide" data-action="session-bodyweight">${s.loadSchemaVersion===1?'本次参考体重':'本次体重 / 自重加重'}</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…">${esc(s.note)}</textarea><div class="row end-row"><span class="muted">共 ${s.movements.reduce((a,m)=>a+m.sets.length,0)} 组</span><button class="outline" data-action="finish">结束训练</button></div>`;}
-function restPanel(){return `<aside class="rest-panel" aria-label="组间休息"><div class="row"><div><b id="rest-title">组间休息</b><small>${esc(db().rest.name)}</small></div><strong id="clock" aria-live="off">00:00</strong></div><div class="rest-actions"><button data-action="rest-minus">−15 秒</button><button data-action="rest-plus">＋15 秒</button><button data-action="rest-end">结束休息</button></div>${isIPhone?'<button id="island-start" class="island-start" data-action="island-start" disabled>灵动岛提醒 ↗</button>':''}</aside>`;}
+const effortDisplay=()=>db().effortDisplay??'rpe';
+const nextPerformance=()=>({setType:nextSet?.setType??'normal',toFailure:nextSet?.toFailure??false,effort:null});
+
+function nextSetControls(){
+ const {setType,toFailure}=nextPerformance();
+ const typeButtons=Object.entries(SET_TYPES).map(([type,label])=>
+  `<button data-action="next-set-type" data-type="${type}" aria-pressed="${type===setType}">${label}</button>`).join('');
+ return `<div class="next-set-controls" role="group" aria-label="下一组标记">${typeButtons}<button data-action="next-set-failure" aria-pressed="${toFailure}">力竭</button></div>`;
+}
+
+function setDetails(set){
+ const details=performanceDetails(set);
+ if(!details)return '';
+ const labels=[];
+ if(details.setType)labels.push(SET_TYPES[details.setType]);
+ if(details.toFailure)labels.push('力竭');
+ const mode=effortDisplay();
+ if(mode!=='off'){
+  if(details.effort)labels.push(effortLabel(details.effort,mode));
+  if(details.effortNeedsConfirmation)labels.push('评分待确认');
+ }
+ return labels.length?`<small class="set-performance">${labels.join(' · ')}</small>`:'';
+}
+
+function setCounts(sets){
+ if(!sets.length)return '';
+ return `<p class="footnote set-counts">${performanceCountText(performanceCounts(sets.map(performanceDetails)),effortDisplay()!=='off')}</p>`;
+}
+
+function saveTrainingSet(m,reps,weight,timed,performance){
+ const draft=nextSet;
+ nextSet=null;
+ const saved=mutate(d=>bodyUI.record(d,m.id,reps,weight,timed,performance));
+ if(!saved)nextSet=draft;
+ return saved;
+}
+
+function training(){const s=db().active,m=movement();return `<div class="row"><p class="eyebrow">${esc(s.name)}</p><button class="text-button" data-action="manage">调整动作</button></div><div class="exercise-tabs" aria-label="本次动作">${s.movements.map(x=>`<button data-action="select" data-id="${x.id}" class="${x.id===m?.id?'selected':''}">${x.skipped?'跳过 · ':''}${esc(x.exercise.name)}${x.sets.length?` <small>${x.sets.length}</small>`:''}</button>`).join('')}</div>${m?`<div class="training-heading"><h1>${esc(m.exercise.name)}</h1><div class="row"><span class="muted">已完成 <b class="accent">${m.sets.length}</b> / ${m.exercise.target} 组</span><span class="badge">下一组 · ${String(m.sets.length+1).padStart(2,'0')}</span></div></div>${bodyUI.panel(m)}<section class="record-card"><label for="weight" class="weight-label">${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'} <span>${esc(m.exercise.unit)}</span></label><div class="weight-control"><button data-action="weight-minus" aria-label="减少重量">−</button><input id="weight" data-load-mode="${bodyUI.mode(m)}" inputmode="decimal" type="number" min="0" max="10000" step="any" value="${bodyUI.suggested(db(),m)}" aria-label="${bodyUI.mode(m)==='bodyweight_plus_extra'?'额外负重':'本组重量'}"><button data-action="weight-plus" aria-label="增加重量">＋</button></div>${bodyUI.reference(m,bodyUI.suggested(db(),m))}${nextSetControls()}<div class="reps-buttons">${m.exercise.reps.map(r=>`<button data-action="record" data-reps="${r}" aria-label="完成${r}次"><strong>${r}</strong><span>次 · 完成</span></button>`).join('')}</div><button class="other-button" data-action="set-new">其他次数 / 补录</button></section><section class="previous"><div class="row"><h2>上次表现</h2><button class="text-button" data-action="history-open" data-id="${m.exercise.id}">查看历史</button></div>${identityConflict(db(),m.exercise.id)?identityWarning(m.exercise.id):previous(db(),m.exercise.id,m.exercise.unit)?`<div class="last-sets">${previous(db(),m.exercise.id,m.exercise.unit).sets.map((x,i)=>`<div><small>第 ${i+1} 组</small><b>${esc(bodyUI.setText(x,m.exercise.unit))} <span>× ${x.reps}</span></b></div>`).join('')}</div>`:'<p class="muted">第一次记录，从今天开始。</p>'}</section><section><div class="row section-heading"><h2>本次记录 <span class="count">${m.sets.length}</span></h2>${m.sets.length?'<button class="text-button" data-action="undo">撤销上一组</button>':''}</div>${setCounts(m.sets)}${m.sets.length?`<div class="set-list">${m.sets.map((x,i)=>`<button class="set-row" data-action="set-edit" data-id="${x.id}"><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}${setDetails(x)}</b><span>× ${x.reps} 次</span><span class="edit-label">修改</span></button>`).join('')}</div>`:'<div class="empty-small">完成一组后，点上方次数按钮。</div>'}</section>`:'<div class="empty"><h1>添加今天的动作</h1><button class="primary" data-action="manage">选择动作</button></div>'}<button class="outline wide" data-action="session-bodyweight">${s.loadSchemaVersion===1?'本次参考体重':'本次体重 / 自重加重'}</button><label class="note-label" for="note">训练备注 <span>选填</span></label><textarea id="note" rows="2" maxlength="10000" placeholder="今天的状态、器械差异…">${esc(s.note)}</textarea><div class="row end-row"><span class="muted">共 ${s.movements.reduce((a,m)=>a+m.sets.length,0)} 组</span><button class="outline" data-action="finish">结束训练</button></div>`;}
+function restPanel(){
+ const {active,rest}=db();
+ const matches=active.movements.filter(m=>m.sets.some(set=>set.id===rest.setID));
+ const m=matches.length===1?matches[0]:null;
+ const action=m?`<button class="rest-performance" data-action="rest-performance" data-session="${esc(active.id)}" data-movement="${esc(m.id)}" data-id="${esc(rest.setID)}">${effortDisplay()==='off'?'标记本组':`补记 ${effortDisplay().toUpperCase()}`}</button>`:'';
+ return `<aside class="rest-panel" aria-label="组间休息"><div class="row"><div><b id="rest-title">组间休息</b><small>${esc(db().rest.name)}</small></div><strong id="clock" aria-live="off">00:00</strong></div><div class="rest-actions"><button data-action="rest-minus">−15 秒</button><button data-action="rest-plus">＋15 秒</button><button data-action="rest-end">结束休息</button></div>${isIPhone?'<button id="island-start" class="island-start" data-action="island-start" disabled>灵动岛提醒 ↗</button>':''}${action}</aside>`;
+}
 function startClockTimer(seconds){
  window.location.href=`shortcuts://run-shortcut?name=${encodeURIComponent(clockShortcutName)}&input=text&text=${seconds}`;
 }
@@ -120,10 +168,79 @@ function exerciseEditor(e,save,back){if(identityConflict(db(),e.id)){identityRes
  if(new Set(updated.reps).size!==3){toast('三个快捷次数不能相同');return;}
  try{save(reviseExercise(db(),e,updated));}catch(err){toast(err.message);}
  },{back});}
-function setEditor(m,entry,sessionID=null){showDialog(entry?'修改这一组':'记录一组',`<p class="muted">${esc(m.exercise.name)}</p><div class="form-grid"><label>${(entry?(entry.load?.mode??'legacy'):bodyUI.mode(m))==='bodyweight_plus_extra'?'额外负重':entry&&!entry.load?'原记录重量':'重量'} · ${esc(m.exercise.unit)}<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${entry?.weight??bodyUI.suggested(db(),m)}" required></label><label>实际次数<input name="reps" type="number" inputmode="numeric" min="1" max="999" value="${entry?.reps??m.exercise.reps[1]}" required></label></div>${entry?.load?.mode==='bodyweight_plus_extra'?`<label>本组参考体重 · kg（留空为未知）<input name="bodyWeight" type="number" inputmode="decimal" min="0.01" max="1000" step="0.01" value="${entry.load.bodyWeightKg??''}"></label>`:''}${!entry?'<label class="check-label"><input type="checkbox" name="timed" checked>完成后开始休息</label><p class="footnote">补录之前的组时，关闭此开关。</p>':'<p class="footnote">修改记录不会启动新的休息计时。</p><button type="button" class="danger wide" data-modal="delete">删除这一组</button>'}`,fd=>{
- unlockAudio();if(String(fd.get('weight')??'').trim()===''||String(fd.get('reps')??'').trim()===''){toast('重量和次数不能为空');return;}const weight=+fd.get('weight'),reps=+fd.get('reps');
- if(mutate(d=>{if(entry){const s=sessionID?d.history.find(s=>s.id===sessionID):d.active;const x=s.movements.find(x=>x.id===m.id).sets.find(x=>x.id===entry.id);bodyUI.editSet(x,weight,reps,m.exercise.unit,fd.get('bodyWeight'));}else bodyUI.record(d,m.id,reps,weight,fd.has('timed'));},'记录已保存'))$('#modal').close();
- },{delete:()=>{if(mutate(d=>removeSet(d,m.id,entry.id,sessionID),'已删除这一组'))$('#modal').close();}});}
+function performanceFields(values){
+ const {setType,toFailure,effort}=values,mode=effortDisplay();
+ const typeOptions=[['','未分类'],...Object.entries(SET_TYPES)].map(([value,label])=>
+  `<option value="${value}" ${(setType??'')===value?'selected':''}>${label}</option>`).join('');
+ const fields=`<label>组类型<select name="setType">${typeOptions}</select></label>
+  <label class="check-label"><input type="checkbox" name="toFailure" ${toFailure?'checked':''}>标记力竭</label>`;
+ if(mode==='off')return fields;
+ const scores=Array.from({length:11},(_,i)=>({kind:'exact',rpe:mode==='rir'?10-i/2:5+i/2}));
+ scores.push({kind:'at_most',rpe:5});
+ const options=scores.map(score=>{
+  const value=score.kind==='at_most'?'bound':score.rpe;
+  const selected=effort?.kind===score.kind&&effort.rpe===score.rpe;
+  return `<option value="${value}" ${selected?'selected':''}>${effortLabel(score,mode)}</option>`;
+ }).join('');
+ return fields+`<label>${mode.toUpperCase()}（选填）<select name="effort"><option value="">未评分</option>${options}</select></label>${effort?'<label class="check-label"><input type="checkbox" name="confirmEffort">确认这个评分适用于保存后的重量、次数及参考体重</label>':''}`;
+}
+
+function performanceInput(fd,prior){
+ if(!fd.has('setType'))return prior;
+ const raw=fd.get('effort');
+ const effort=raw===null?prior.effort:raw===''?null:raw==='bound'?{kind:'at_most',rpe:5}:{kind:'exact',rpe:Number(raw)};
+ return {setType:fd.get('setType')||null,toFailure:fd.has('toFailure'),effort};
+}
+
+function unchangedSet(d,ref,expected,unit){
+ const found=findSet(d,ref);
+ if(found.movement.exercise.unit!==unit||JSON.stringify(found.set)!==JSON.stringify(expected)){
+  throw Error('这组记录已修改，请重新打开后操作。');
+ }
+ return found;
+}
+
+function annotateSet(ref){
+ const {movement:m,set}=findSet(db(),ref);
+ const prior=set.performance??{setType:null,toFailure:false,effort:null};
+ const stale=effortDisplay()!=='off'&&performanceDetails(set)?.effortNeedsConfirmation;
+ showDialog('补记这组',`<p class="muted">${esc(m.exercise.name)} · ${esc(bodyUI.setText(set,m.exercise.unit))} × ${set.reps} 次</p>${stale?'<p class="footnote">记录条件已变化，原评分待确认。</p>':''}${performanceFields(prior)}`,fd=>{
+  if(mutate(d=>setPerformance(unchangedSet(d,ref,set,m.exercise.unit).set,performanceInput(fd,prior),fd.has('confirmEffort')),'组标记已保存'))$('#modal').close();
+ });
+}
+
+function setEditor(m,entry,sessionID=null){
+ const ref=entry?{sessionID:sessionID??db().active.id,movementID:m.id,setID:entry.id}:null;
+ const prior=entry?(entry.performance??{setType:null,toFailure:false,effort:null}):nextPerformance();
+ const extra=(entry?(entry.load?.mode??'legacy'):bodyUI.mode(m))==='bodyweight_plus_extra';
+ const stale=entry&&effortDisplay()!=='off'&&performanceDetails(entry)?.effortNeedsConfirmation;
+ const bodyWeight=entry?.load?.mode==='bodyweight_plus_extra'
+  ?`<label>本组参考体重 · kg（留空为未知）<input name="bodyWeight" type="number" inputmode="decimal" min="0.01" max="1000" step="0.01" value="${entry.load.bodyWeightKg??''}"></label>`:'';
+ const timing=entry?'<p class="footnote">修改记录不会启动新的休息计时。</p><button type="button" class="danger wide" data-modal="delete">删除这一组</button>'
+  :'<label class="check-label"><input type="checkbox" name="timed" checked>完成后开始休息</label><p class="footnote">补录之前的组时，关闭此开关。</p>';
+ showDialog(entry?'修改这一组':'记录一组',`<p class="muted">${esc(m.exercise.name)}</p>
+  <div class="form-grid"><label>${extra?'额外负重':entry&&!entry.load?'原记录重量':'重量'} · ${esc(m.exercise.unit)}<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${entry?.weight??bodyUI.suggested(db(),m)}" required></label>
+  <label>实际次数<input name="reps" type="number" inputmode="numeric" min="1" max="999" value="${entry?.reps??m.exercise.reps[1]}" required></label></div>${bodyWeight}
+  ${stale?'<p class="footnote">记录条件已变化，原评分待确认。</p>':''}${performanceFields(prior)}${timing}`,fd=>{
+  if(String(fd.get('weight')??'').trim()===''||String(fd.get('reps')??'').trim()===''){toast('重量和次数不能为空');return;}
+  const weight=Number(fd.get('weight')),reps=Number(fd.get('reps')),performance=performanceInput(fd,prior);
+  if(!entry){
+   unlockAudio();
+   if(saveTrainingSet(m,reps,weight,fd.has('timed'),performance)){$('#modal').close();toast('记录已保存');}
+   return;
+  }
+  if(mutate(d=>{
+   const {set,movement}=unchangedSet(d,ref,entry,m.exercise.unit);
+   const raw=String(fd.get('bodyWeight')??'').trim(),bw=raw===''?null:Number(raw);
+   if(weight!==set.weight||reps!==set.reps||(extra&&bw!==set.load.bodyWeightKg)){
+    bodyUI.editSet(set,weight,reps,movement.exercise.unit,raw);
+   }
+   setPerformance(set,performance,fd.has('confirmEffort'));
+  },'记录已保存'))$('#modal').close();
+ },{delete:()=>{
+  if(mutate(d=>{unchangedSet(d,ref,entry,m.exercise.unit);removeSet(d,m.id,entry.id,sessionID);},'已删除这一组'))$('#modal').close();
+ }});
+}
 function manage(){if(!preserveTrainingInputs())return;const movements=db().active.movements,sessionID=db().active.id;const move=(id,position)=>mutate(d=>{if(d.active?.id!==sessionID)throw Error('当前训练已改变，请重新打开调整动作。');moveToPosition(d.active.movements,id,position);});showDialog('调整本次训练',`<p class="muted">改名会同步到计划，其他调整只影响今天。未记录的动作可移除；已记录的动作可跳过，保留已完成的组。</p><div class="editor-list">${movements.map((m,i)=>`<div class="editor-item"><div><b>${i+1}. ${esc(m.exercise.name)}</b><small>${m.skipped?'已跳过':m.sets.length+' 组已完成'}</small></div><div class="mini-actions"><button type="button" data-modal="edit-${i}">设置</button><button type="button" data-modal="order-${i}" aria-label="调整${esc(m.exercise.name)}的顺序">调整顺序</button><button type="button" data-modal="skip-${i}">${m.skipped?'恢复':'跳过'}</button>${!m.sets.length?`<button type="button" data-modal="replace-${i}">更换</button><button type="button" data-modal="remove-${i}" aria-label="从本次训练移除${esc(m.exercise.name)}">移除</button>`:''}<button type="button" data-modal="up-${i}" ${i===0?'disabled':''} aria-label="上移动作">↑</button><button type="button" data-modal="down-${i}" ${i===movements.length-1?'disabled':''} aria-label="下移动作">↓</button></div></div>`).join('')}</div><button type="button" class="outline wide" data-modal="add">＋ 添加动作</button><button type="button" class="outline wide" data-modal="template">更新固定计划</button>`,()=>$('#modal').close(),{
  add:()=>pickExercise(),template:()=>confirmAction('更新固定计划？','把本次未跳过的动作和顺序保存到原计划，已有历史不变。','更新计划',()=>mutate(d=>{const s=d.active,seen=new Set(),p={id:s.planID,name:s.name,exercises:s.movements.filter(m=>!m.skipped).map(m=>structuredClone(m.exercise)).filter(e=>!seen.has(e.id)&&seen.add(e.id))};const i=d.plans.findIndex(p=>p.id===s.planID);if(i<0)d.plans.push(p);else d.plans[i]=p;},'计划已更新')),
  ...Object.fromEntries(movements.flatMap((m,i)=>[
@@ -142,7 +259,24 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
  if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;render();scrollTo(0,0);}
  else if(a==='start'){if(mutate(d=>bodyUI.start(d,b.dataset.id))){unlockAudio();selected=null;scrollTo(0,0);}}
  else if(a==='select'){if(!preserveTrainingInputs())return;selected=b.dataset.id;render();}
- else if(a==='record'){if(!preserveTrainingInputs())return;if(Date.now()-lastTap<650)return;lastTap=Date.now();unlockAudio();const s=mutate(d=>bodyUI.record(d,m.id,+b.dataset.reps,bodyUI.suggested(d,m)));if(s)toast(`第 ${movement().sets.length} 组已保存 · ${fmt(s.weight)} × ${s.reps}`);}
+ else if(a==='next-set-type'||a==='next-set-failure'){
+  if(!m||!preserveTrainingInputs())return;
+  const {setType,toFailure}=nextPerformance();
+  nextSet={sessionID:db().active.id,movementID:m.id,setType:a==='next-set-type'?b.dataset.type:setType,toFailure:a==='next-set-failure'?!toFailure:toFailure};
+  render();
+ }
+ else if(a==='record'){
+  if(!m||!preserveTrainingInputs()||Date.now()-lastTap<650)return;
+  lastTap=Date.now();unlockAudio();
+  const saved=saveTrainingSet(m,+b.dataset.reps,bodyUI.suggested(db(),m),true,nextPerformance());
+  if(saved)toast(`第 ${movement().sets.length} 组已保存 · ${fmt(saved.weight)} × ${saved.reps}`);
+ }
+ else if(a==='rest-performance'){
+  if(!preserveTrainingInputs())return;
+  const {session:sessionID,movement:movementID,id:setID}=b.dataset;
+  if(db().active?.id!==sessionID||db().rest?.setID!==setID){toast('休息对应的组已变化，请重新打开。');return;}
+  try{annotateSet({sessionID,movementID,setID});}catch(err){toast(err.message);}
+ }
  else if(a==='weight-minus'||a==='weight-plus'){mutate(d=>{const x=d.active.movements.find(x=>x.id===m.id);x.overrideMode=bodyUI.mode(m);x.overrideWeight=Math.max(0,Math.min(10000,Math.round((bodyUI.suggested(d,x)+(a==='weight-plus'?1:-1)*x.exercise.step)*100)/100));});}
  else if(a==='undo'){mutate(d=>removeSet(d,m.id,m.sets.at(-1).id),'已撤销，相关计时已取消');}
  else if(a==='island-start'){
@@ -161,8 +295,8 @@ $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]')
  else if(a==='plan-edit')planEditor(structuredClone(db().plans.find(p=>p.id===b.dataset.id)));
  else if(a==='manage')manage();
  else if(a==='session-bodyweight'){if(preserveTrainingInputs()){if(db().active.loadSchemaVersion===1)bodyUI.sessionDialog(db().active.id);else healthUI.openSessionBodyWeight(db().active.id);}}
- else if(a==='set-new')setEditor(m,null);
- else if(a==='set-edit')setEditor(m,m.sets.find(s=>s.id===b.dataset.id));
+ else if(a==='set-new'){if(m&&preserveTrainingInputs())setEditor(m,null);}
+ else if(a==='set-edit'){const entry=m?.sets.find(s=>s.id===b.dataset.id);if(entry&&preserveTrainingInputs())setEditor(m,entry);}
  else if(a==='history-open'){historyID=b.dataset.id;view='history';render();scrollTo(0,0);}
  else extraAction(a,b);
 });
@@ -182,13 +316,13 @@ function history(){
  const deleted=[...(db().deletedHistory??[])].sort((a,b)=>b.deletedAt-a.deletedAt);
  return `<p class="eyebrow">每一次训练，都有迹可循</p><h1>训练历史</h1>${identityWarnings()}<div class="segmented"><button data-action="history-tab" data-tab="exercise" class="${tab==='exercise'?'selected':''}">按动作</button><button data-action="history-tab" data-tab="session" class="${tab==='session'?'selected':''}">按训练</button><button data-action="history-tab" data-tab="deleted" class="${tab==='deleted'?'selected':''}">最近删除${deleted.length?` (${deleted.length})`:''}</button></div>${tab==='deleted'?`<p class="footnote">已删除的训练不计入历史和上次表现，可随时恢复。备份也会保留这些记录，不会自动清空。</p>${deleted.length?deleted.map(entry=>historySession(entry.session,null,true)).join(''):'<div class="empty"><p>没有已删除的训练。</p></div>'}`:!sessions.length?'<div class="empty"><h2>还没有完成的训练</h2><p>训练结束后，重量和次数会出现在这里。</p></div>':tab==='session'?sessions.map(s=>historySession(s)).join(''):`<div class="history-list">${exercises.map(m=>`<button data-action="history-open" data-id="${m.exercise.id}" class="history-item"><div><b>${esc(exerciseName(m.exercise.id))}</b><small>${m.sets.map(s=>bodyUI.setText(s,m.exercise.unit)+' × '+s.reps).join(' / ')}</small></div><span>›</span></button>`).join('')}</div>`}`;
 }
-function historySession(s,exerciseID=null,deleted=false){return `<article class="history-session" id="history-${esc(s.id)}"><div class="row"><h2>${esc(s.name)}</h2><span class="muted">${date(s.started)}</span></div><p class="footnote">${new Date(s.started).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})} · 共 ${s.movements.reduce((n,m)=>n+m.sets.length,0)} 组</p>${s.movements.filter(m=>m.sets.length&&(!exerciseID||m.exercise.id===exerciseID)).map(m=>`<div class="history-movement"><h3>${esc(identityConflict(db(),m.exercise.id)?m.exercise.name:exerciseName(m.exercise.id,m.exercise.name))}${m.skipped?' · 跳过':''}</h3>${m.sets.length?m.sets.map((x,i)=>`<${deleted?'div':'button'} class="set-row" ${deleted?'':`data-action="history-edit" data-session="${esc(s.id)}" data-movement="${esc(m.id)}" data-id="${esc(x.id)}"`}><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}</b><span>× ${x.reps} 次</span>${deleted?'':'<span class="edit-label">修改</span>'}</${deleted?'div':'button'}>`).join(''):'<p class="muted">未记录组数</p>'}</div>`).join('')}${s.note?`<p class="history-note">${esc(s.note)}</p>`:''}<div class="history-actions">${deleted?`<button class="outline wide" data-action="history-restore" data-session="${esc(s.id)}">恢复这次训练</button>`:exerciseID?`<button class="text-button" data-action="history-session-open" data-session="${esc(s.id)}">查看整次训练 / 删除记录</button>`:`<button class="danger" data-action="history-delete" data-session="${esc(s.id)}">删除这次训练</button>`}</div></article>`;}
+function historySession(s,exerciseID=null,deleted=false){return `<article class="history-session" id="history-${esc(s.id)}"><div class="row"><h2>${esc(s.name)}</h2><span class="muted">${date(s.started)}</span></div><p class="footnote">${new Date(s.started).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})} · 共 ${s.movements.reduce((n,m)=>n+m.sets.length,0)} 组</p>${s.movements.filter(m=>m.sets.length&&(!exerciseID||m.exercise.id===exerciseID)).map(m=>`<div class="history-movement"><h3>${esc(identityConflict(db(),m.exercise.id)?m.exercise.name:exerciseName(m.exercise.id,m.exercise.name))}${m.skipped?' · 跳过':''}</h3>${setCounts(m.sets)}${m.sets.length?m.sets.map((x,i)=>`<${deleted?'div':'button'} class="set-row" ${deleted?'':`data-action="history-edit" data-session="${esc(s.id)}" data-movement="${esc(m.id)}" data-id="${esc(x.id)}"`}><span class="set-number">${String(i+1).padStart(2,'0')}</span><b>${x.load?esc(bodyUI.setText(x,m.exercise.unit)):fmt(x.weight)+' <small>'+esc(m.exercise.unit)+'</small>'}${setDetails(x)}</b><span>× ${x.reps} 次</span>${deleted?'':'<span class="edit-label">修改</span>'}</${deleted?'div':'button'}>`).join(''):'<p class="muted">未记录组数</p>'}</div>`).join('')}${s.note?`<p class="history-note">${esc(s.note)}</p>`:''}<div class="history-actions">${deleted?`<button class="outline wide" data-action="history-restore" data-session="${esc(s.id)}">恢复这次训练</button>`:exerciseID?`<button class="text-button" data-action="history-session-open" data-session="${esc(s.id)}">查看整次训练 / 删除记录</button>`:`<button class="danger" data-action="history-delete" data-session="${esc(s.id)}">删除这次训练</button>`}</div></article>`;}
 function deleteHistoryDialog(id){
  const session=db().history.find(s=>s.id===id);if(!session){toast('找不到这次训练，可能已删除');return;}
  const count=session.movements.reduce((n,m)=>n+m.sets.length,0);
  confirmAction('删除这次训练？',`${date(session.started)} ${new Date(session.started).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})} · ${session.name}，共 ${count} 组。会移除这整次训练的所有动作记录；计划与正在进行的训练保留。误删可到“最近删除”恢复。`,'移入最近删除',()=>mutate(d=>deleteHistory(d,id),'已移入最近删除，可随时恢复'));
 }
-function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>个人身体档案</h2><p>体重设置后持续使用，想改时再改；身高和性别选填。</p><button class="primary wide" data-action="profile-open">身体档案 / 修改体重</button></section><section class="settings-card"><h2>健康与 AI</h2><p>导入 Apple Health JSON、查看本机趋势，并生成可手动复制到 GPT 的分析报告。</p><button class="primary wide" data-action="health-open">打开健康与 AI</button></section><section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：1.8.2 · 2026-11-03</p><details><summary>查看 v1.8.2 更新日志</summary><p>新增选填身体档案、按需更新体重、自重＋额外负重输入与完整备份。体重跨日沿用，训练快照独立；旧原值及确认解释保留。新版训练格式 2，最低编辑与恢复版本 1.8.2。Apple Health 与 GPT 仍由用户手动操作。</p></details><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">更新保留本机记录。正在编辑时请先保存或关闭；训练中的重量和备注会在刷新前保存。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。${isIPhone?'可先设置灵动岛提醒，再从组间休息面板启动系统计时。':'如需锁屏提醒，请同时使用手机系统计时器。'}</p></aside>${isIPhone?'<button class="outline wide" data-action="island-setup">灵动岛提醒设置</button>':''}<button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><button class="primary wide" data-action="full-export">导出完整备份（推荐）</button><button class="outline wide" data-action="full-import">恢复完整备份 / 换机</button><button class="text-button" data-action="full-before">导出完整恢复前副本</button><input id="full-import-file" type="file" accept="application/json,.json" hidden><p class="footnote">完整备份含训练、健康、动作类型、身体档案、体重历史及训练快照；最低恢复版本 1.8.2。下面的训练单独备份不包含其他分区。</p><button class="outline wide" data-action="history-deleted">查看最近删除的训练 (${db().deletedHistory?.length??0})</button><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 1.8.4<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
+function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>个人身体档案</h2><p>体重设置后持续使用，想改时再改；身高和性别选填。</p><button class="primary wide" data-action="profile-open">身体档案 / 修改体重</button></section><section class="settings-card"><h2>健康与 AI</h2><p>导入 Apple Health JSON、查看本机趋势，并生成可手动复制到 GPT 的分析报告。</p><button class="primary wide" data-action="health-open">打开健康与 AI</button></section><section class="settings-card"><h2>训练强度</h2><label class="effort-display">评分显示<select id="effort-display">${[['rpe','RPE'],['rir','RIR'],['off','关闭']].map(([value,label])=>`<option value="${value}" ${effortDisplay()===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="footnote">关闭后保留已保存的评分、组类型和力竭标记。</p></section><section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：${APP_VERSION}</p><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">更新保留本机记录。正在编辑时请先保存或关闭；训练中的重量和备注会在刷新前保存。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。${isIPhone?'可先设置灵动岛提醒，再从组间休息面板启动系统计时。':'如需锁屏提醒，请同时使用手机系统计时器。'}</p></aside>${isIPhone?'<button class="outline wide" data-action="island-setup">灵动岛提醒设置</button>':''}<button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><button class="primary wide" data-action="full-export">导出完整备份（推荐）</button><button class="outline wide" data-action="full-import">恢复完整备份 / 换机</button><button class="text-button" data-action="full-before">导出完整恢复前副本</button><input id="full-import-file" type="file" accept="application/json,.json" hidden><p class="footnote">完整备份含训练、健康、动作类型、身体档案、体重历史及训练快照；组标记与评分可在 1.8.5 或更新版本查看。下面的训练单独备份不包含其他分区。</p><button class="outline wide" data-action="history-deleted">查看最近删除的训练 (${db().deletedHistory?.length??0})</button><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 ${APP_VERSION}<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
 function download(raw,name,type='application/json'){const blob=new Blob([raw],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function extraAction(a,b){
  if(bodyUI.action(a,b))return;
@@ -212,7 +346,7 @@ function extraAction(a,b){
 }
 let wakeDesired=false;
 async function toggleWake(){if(awake){wakeDesired=false;await awake.release();awake=null;render();return;}if(!navigator.wakeLock){toast('当前浏览器不支持保持屏幕常亮');return;}try{awake=await navigator.wakeLock.request('screen');wakeDesired=true;awake.addEventListener('release',()=>{awake=null;if(view==='settings')render();});render();toast('已保持屏幕常亮');}catch{toast('无法保持常亮，请检查低电量模式和浏览器设置');}}
-$('#app').addEventListener('change',async e=>{if(e.target.id==='full-import-file'){await bodyUI.importFile(e.target.files?.[0]);e.target.value='';return;}if(e.target.id==='health-import-file'){await healthUI.importFile(e.target.files?.[0]);e.target.value='';return;}if(e.target.id!=='import-file')return;const file=e.target.files[0];if(!file)return;try{if(file.size>10*1024*1024)throw Error('文件过大，请选择 10 MB 以内的训练备份。');const data=parseBackup(await file.text()),expected=bodyUI.fingerprint();confirmAction('用备份恢复记录？',`备份含 ${data.plans.length} 个计划、${data.history.length} 次历史训练。将替换当前全部记录；原数据会先保留一份本机副本。`,'恢复备份',()=>{try{bodyUI.restoreTraining(data,expected);toast('备份已恢复');return true;}catch(err){toast('恢复失败，原数据未改变：'+err.message);return false;}});}catch(err){toast(err.message);}finally{e.target.value='';}});
+$('#app').addEventListener('change',async e=>{if(e.target.id==='effort-display'){if(!mutate(d=>{d.effortDisplay=e.target.value;},'强度显示已保存'))e.target.value=effortDisplay();return;}if(e.target.id==='full-import-file'){await bodyUI.importFile(e.target.files?.[0]);e.target.value='';return;}if(e.target.id==='health-import-file'){await healthUI.importFile(e.target.files?.[0]);e.target.value='';return;}if(e.target.id!=='import-file')return;const file=e.target.files[0];if(!file)return;try{if(file.size>10*1024*1024)throw Error('文件过大，请选择 10 MB 以内的训练备份。');const data=parseBackup(await file.text()),expected=bodyUI.fingerprint();confirmAction('用备份恢复记录？',`备份含 ${data.plans.length} 个计划、${data.history.length} 次历史训练。将替换当前全部记录；原数据会先保留一份本机副本。会话内容不匹配的旧负重与体重确认将移到类型恢复前副本；需要保留所有分区时请使用完整备份。`,'恢复备份',()=>{try{bodyUI.restoreTraining(data,expected);toast('备份已恢复');return true;}catch(err){toast('恢复失败，原数据未改变：'+err.message);return false;}});}catch(err){toast(err.message);}finally{e.target.value='';}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&wakeDesired&&!awake)try{awake=await navigator.wakeLock.request('screen');awake.addEventListener('release',()=>{awake=null;});}catch{}});
 function updateStatus(){
  const status=$('#update-state');if(status)status.textContent=updateState;
