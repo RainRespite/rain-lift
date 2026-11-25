@@ -69,3 +69,12 @@
 .weight-hint{margin:4px 0 10px}
 .weight-hint:empty{display:none}
 .last-sets .text-button{display:block}
+
+.grp-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.grp-chip{position:relative;display:inline-flex;align-items:center;gap:6px;margin:0;padding:0 13px;min-height:44px;border:1px solid var(--line);border-radius:100px;background:var(--surface);font-size:14px;color:var(--muted)}
+.grp-chip input[type=radio]{position:absolute;opacity:0;width:1px;height:1px;min-height:0;margin:0;padding:0;border:0}
+.grp-chip input[type=radio]:focus-visible+span{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.grp-chip:has(input:checked){background:var(--accent);border-color:var(--accent);color:var(--dark)}
+.grp-chip.new{border-style:dashed}
+.grp-chip.new input[type=text]{display:inline-block;width:78px;min-height:26px;margin:0;padding:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:14px;color:var(--text)}
+.grp-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:100px;background:var(--surface2);color:var(--accent);font-size:12px;font-style:normal;vertical-align:2px}

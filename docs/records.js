@@ -1,7 +1,7 @@
-import {identityConflict} from './data.js?v=1.9.1';
-import {healthDateKey} from './health.js?v=1.9.1';
-import {validateLoad} from './load.js?v=1.9.1';
-import {isWorkingSet,setTypeOf} from './performance.js?v=1.9.1';
+import {identityConflict} from './data.js?v=1.9.2';
+import {healthDateKey} from './health.js?v=1.9.2';
+import {validateLoad} from './load.js?v=1.9.2';
+import {isWorkingSet,setTypeOf} from './performance.js?v=1.9.2';
 
 const DAY = 86400000;
 const MASS_UNITS = new Set(['kg','kgs','kilogram','kilograms','公斤','千克','lb','lbs','pound','pounds','磅']);

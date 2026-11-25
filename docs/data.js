@@ -1,17 +1,21 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.9.1';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.1';
-import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.1';
+import {validateLoad,validateSnapshot} from './load.js?v=1.9.2';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.2';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.2';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
+export const EXERCISE_GROUPS=['背','肩','胸','腿','核心','手臂'];
 export const uid=()=>crypto.randomUUID();
 export const exercise=(name='新动作',weight=20,reps=[8,9,10],rest=90)=>({id:uid(),name,weight,unit:'kg',step:2.5,reps,rest,target:3});
 export function initial(){return {format:'rainlift-web',version:1,plans:[{id:uid(),name:'拉 · 背部与二头',exercises:[exercise('宽距高位下拉',40),exercise('坐姿划船',35),exercise('哑铃弯举',10,[10,12,15],60)]},{id:uid(),name:'推 · 胸肩与三头',exercises:[exercise('卧推',40,[8,9,10],120),exercise('哑铃肩推',12.5),exercise('侧平举',5,[12,15,20],60)]}],history:[],active:null,rest:null};}
 const finite=(x,min,max)=>typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max;
 const integer=(x,min,max)=>Number.isInteger(x)&&finite(x,min,max);
 const text=x=>typeof x==='string'&&x.trim().length>0&&x.length<=200;
+// Stored loosely so a hand-edited or future label can never lock the whole
+// training store; the writers below always normalize before saving.
+const groupText=x=>x==null||(typeof x==='string'&&x.trim().length>0&&x.length<=24);
 const ids=xs=>Array.isArray(xs)&&xs.every(x=>text(x.id))&&new Set(xs.map(x=>x.id)).size===xs.length;
 export function validate(d){
- const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999))&&(e.progression===undefined||validateProgression(e.progression));
+ const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999))&&groupText(e.group)&&(e.progression===undefined||validateProgression(e.progression));
  const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit))&&(s.performance===undefined||validatePerformance(s.performance))&&(s.progressionTarget===undefined||validateProgressionTarget(s.progressionTarget));
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(s=>set(s,m.exercise.unit))&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement)&&(s.loadSchemaVersion===undefined||d.version===2&&s.loadSchemaVersion===1&&validateSnapshot(s.bodyWeightSnapshot)&&s.movements.every(m=>m.sets.every(set=>set.load)));
@@ -40,6 +44,28 @@ const allReferences=(d,id)=>[...currentReferences(d,id),...d.history.flatMap(s=>
 // contribute recommendations. Explicit identity splits still update their IDs.
 const allStoredReferences=(d,id)=>[...allReferences(d,id),...(d.deletedHistory??[]).flatMap(entry=>entry.session.movements.map(m=>m.exercise)).filter(e=>e.id===id)];
 export function identityNames(d,id){return [...new Set(currentReferences(d,id).map(e=>e.name))];}
+export const exerciseGroupLabel=e=>typeof e?.group==='string'&&e.group.trim()?e.group.trim():null;
+export function normalizeGroupName(value){
+ const name=String(value??'').trim().replace(/\s+/g,' ');
+ if(!name)return null;
+ if(name.length>24)throw Error('主类名称请控制在 24 字以内。');
+ return name;
+}
+// Custom categories are derived from the labels in active use, so there is no
+// separate list to create, sync or delete.
+export function usedExerciseGroups(d){
+ const used=[...new Set([...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].map(exerciseGroupLabel).filter(Boolean))];
+ const custom=used.filter(name=>!EXERCISE_GROUPS.includes(name)).sort((a,b)=>a.localeCompare(b,'zh-CN'));
+ return [...EXERCISE_GROUPS,...custom];
+}
+// A category belongs to the exercise identity: plans and the current session
+// follow it, while recorded history keeps the label that was in force then.
+export function syncExerciseGroup(d,id,group){
+ if(identityConflict(d,id))throw Error('请先整理这个动作的旧历史关联。');
+ const refs=[...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].filter(x=>x.id===id);
+ for(const x of refs){if(group===null)delete x.group;else x.group=group;}
+ return refs.length;
+}
 // Different historical names can be rename snapshots. Concurrent definitions
 // need an explicit alias lineage before they can safely share recommendations.
 export function identityConflict(d,id){

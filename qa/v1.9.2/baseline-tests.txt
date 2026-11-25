@@ -1,0 +1,9 @@
+✔ refresh cannot reinterpret an extra-weight draft after another page changes the action mode (1.875667ms)
+ℹ tests 305
+ℹ suites 0
+ℹ pass 305
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 361.275709
