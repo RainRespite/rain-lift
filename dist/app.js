@@ -404,7 +404,27 @@ function manage(){if(!preserveTrainingInputs())return;const movements=db().activ
  [`down-${i}`,()=>{const index=db().active.movements.findIndex(x=>x.id===m.id);if(move(m.id,index+2))manage();}]
  ]))
  });}
-function pickExercise(replaceID=null){const seen=new Set(),library=db().plans.flatMap(p=>p.exercises).filter(e=>{const key=identityConflict(db(),e.id)?JSON.stringify([e.id,e.name]):e.id;return !seen.has(key)&&seen.add(key);});const add=e=>{const conflictID=[e.id,db().active.movements.find(m=>m.id===replaceID)?.exercise.id].find(id=>id&&identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}if(mutate(d=>{if(replaceID){const m=d.active.movements.find(m=>m.id===replaceID);m.exercise=structuredClone(e);delete m.overrideWeight;m.skipped=false;}else d.active.movements.push({id:uid(),exercise:structuredClone(e),sets:[],skipped:false});},'动作已更新'))manage();};showDialog(replaceID?'更换动作':'添加动作',`<div class="editor-list">${library.map((e,i)=>`<button class="library-item" type="button" data-modal="choose-${i}">${esc(e.name)}${groupTag(e)}<span>${identityConflict(db(),e.id)?'整理':'＋'}</span></button>`).join('')}</div><button type="button" class="outline wide" data-modal="new">创建新动作</button><button type="button" class="outline wide" data-modal="back">返回</button>`,null,{new:()=>exerciseEditor(exercise(),add,()=>pickExercise(replaceID)),back:manage,...Object.fromEntries(library.map((e,i)=>['choose-'+i,()=>add(e)]))});}
+// The in-session "add exercise" list leads with the categories in use, so a
+// movement is found by the body part it was tagged with instead of one flat name list.
+function groupExercises(list){
+ const buckets=new Map(usedExerciseGroups(db()).map(g=>[g,[]])),rest=[];
+ for(const e of list){const g=exerciseGroupLabel(e);if(g&&buckets.has(g))buckets.get(g).push(e);else rest.push(e);}
+ const sections=[...buckets].filter(([,items])=>items.length).map(([label,items])=>({label,items}));
+ if(rest.length)sections.push({label:null,items:rest});
+ return sections;
+}
+function exerciseSections(list){
+ const seen=new Set(),found=list.filter(e=>{const key=identityConflict(db(),e.id)?JSON.stringify([e.id,e.name]):e.id;return !seen.has(key)&&seen.add(key);});
+ let index=-1;
+ return groupExercises(found).map(s=>({label:s.label,items:s.items.map(exercise=>({exercise,index:++index}))}));
+}
+function exercisePicker(title,sections,choose,create,back){
+ const list=sections.map(s=>`<p class="library-group${s.label?'':' blank'}">${esc(s.label??'还没设主类的动作')}</p>${s.items.map(({exercise:e,index:i})=>`<button class="library-item" type="button" data-modal="choose-${i}">${esc(e.name)}<span>${identityConflict(db(),e.id)?'整理':'＋'}</span></button>`).join('')}`).join('');
+ const picked=Object.fromEntries(sections.flatMap(s=>s.items.map(({exercise:e,index:i})=>['choose-'+i,()=>choose(e)])));
+ showDialog(title,`<div class="editor-list">${list}</div><button type="button" class="outline wide" data-modal="new">创建新动作</button><button type="button" class="outline wide" data-modal="back">返回</button>`,null,{...picked,new:create,back});
+}
+const allPlanExercises=()=>db().plans.flatMap(p=>p.exercises);
+function pickExercise(replaceID=null){const add=e=>{const conflictID=[e.id,db().active.movements.find(m=>m.id===replaceID)?.exercise.id].find(id=>id&&identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}if(mutate(d=>{if(replaceID){const m=d.active.movements.find(m=>m.id===replaceID);m.exercise=structuredClone(e);delete m.overrideWeight;m.skipped=false;}else d.active.movements.push({id:uid(),exercise:structuredClone(e),sets:[],skipped:false});},'动作已更新'))manage();};exercisePicker(replaceID?'更换动作':'添加动作',exerciseSections(allPlanExercises()),add,()=>exerciseEditor(exercise(),add,()=>pickExercise(replaceID)),manage);}
 
 $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.preventDefault();const m=movement(),a=b.dataset.action;
  if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;render();scrollTo(0,0);}

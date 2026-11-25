@@ -4,7 +4,7 @@
 
 | 版本 | 主要工作及版本位置 | 实际测试记录 | 发布与设备验证 |
 | --- | --- | --- | --- |
-| v1.9.2 | 动作主类：六个打底加自定义类，直接写在动作记录上；[交付与恢复](v1.9.2-delivery.md)，分支 `codex/exercise-groups-v1.9.2`，先前的内置动作目录方案保存在标签 `archive/exercise-library-catalog` | 基线 [305 项](../qa/v1.9.2/baseline-tests.txt)，最终 [316 项通过、0 失败](../qa/v1.9.2/tests-final.txt)；[v1.9.1 真实代码兼容 3 项](../qa/v1.9.2/compatibility-v1.9.1.txt)；[界面核验](../qa/v1.9.2/browser.txt)与 [20 个静态文件校验](../qa/v1.9.2/static-sha256.txt) | 未发布：代码只在本地分支，原手机 Pages 与 Sites 入口保持 v1.9.1。内置浏览器视觉截图受阻，iPhone 真机待验收 |
+| v1.9.2 | 动作主类：六个打底加自定义类，直接写在动作记录上；[交付与恢复](v1.9.2-delivery.md)，分支 `codex/exercise-groups-v1.9.2`，先前的内置动作目录方案保存在标签 `archive/exercise-library-catalog` | 基线 [305 项](../qa/v1.9.2/baseline-tests.txt)，最终 [317 项通过、0 失败](../qa/v1.9.2/tests-final.txt)；[v1.9.1 真实代码兼容 3 项](../qa/v1.9.2/compatibility-v1.9.1.txt)；[界面核验](../qa/v1.9.2/browser.txt)与 [20 个静态文件校验](../qa/v1.9.2/static-sha256.txt) | 未发布：代码只在本地分支，原手机 Pages 与 Sites 入口保持 v1.9.1。内置浏览器视觉截图受阻，iPhone 真机待验收 |
 | v1.9.1 | 分组型预填、普通工作组进度、AI 工作组对照，[交付与恢复](v1.9.1-delivery.md)，标签 `v1.9.1` | [305 项](../qa/v1.9.1/tests-final.txt)和[相邻兼容 8 项](../qa/v1.9.1/compatibility-v1.9.0.txt)通过 | 原 GitHub Pages 手机入口，隔离 Chrome 离线和回滚通过，iPhone 真机待验收 |
 | v1.9.0 | 渐进建议、目标快照与手动采用；[交付与恢复](v1.9-delivery.md)，标签 `v1.9.0` | [293 项](../qa/v1.9/tests-final.txt)和兼容矩阵 27 项通过 | 原 GitHub Pages 手机入口，隔离 Chrome 更新/回滚/离线通过，iPhone 真机待验收 |
 | v1.8.6 | 动作 PR 与进步曲线；[交付与恢复](v1.8.6-delivery.md)，标签 `v1.8.6` | [282 项](../qa/v1.8.6/tests-final.txt)与兼容矩阵 12 项通过 | 原 GitHub Pages 手机入口，隔离 Chrome 更新/回滚/离线通过，iPhone 真机待验收 |

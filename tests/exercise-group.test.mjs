@@ -122,7 +122,10 @@ test('training rows and the plan picker show the category and the in-session edi
  assert.match(h.modalHtml,/宽距高位下拉<\/b><i class="grp-tag">背<\/i>/);
  assert.match(h.html,/宽距高位下拉/);
  h.modalAction('add');
- assert.match(h.modalHtml,/宽距高位下拉<i class="grp-tag">背<\/i>/);
+ assert.match(h.modalHtml,/class="library-group">背<\/p>/,'添加动作按主类分段');
+ assert.match(h.modalHtml,/class="library-group blank">还没设主类的动作<\/p>/);
+ assert.doesNotMatch(h.modalHtml,/宽距高位下拉<i class="grp-tag">/,'分段标题已说明分类，行内不再重复标签');
+ assert.ok(h.modalHtml.indexOf('class="library-group">背')<h.modalHtml.indexOf('还没设主类的动作'),'已分类的排在前面');
  h.modalAction('back');
  h.modalAction('edit-0');h.submit({group:'胸'});
  const state=h.state;
@@ -141,4 +144,21 @@ test('training and full backups carry the category across devices',()=>{
  assert.equal(JSON.parse(phone.getItem(KEY)).plans[0].exercises[0].group,'背');
  const legacy=new Storage();legacy.setItem(KEY,JSON.stringify(initial()));
  assert.equal(new Repository(legacy).db.plans[0].exercises[0].group,undefined,'旧备份没有这个字段也能打开');
+});
+
+test('a category used only by the live session still joins the candidates and the plan later',()=>{
+ const d=initial();start(d,d.plans[0].id);
+ const h=createAppHarness(d);
+ h.action('manage');h.modalAction('add');h.modalAction('new');
+ h.submit({name:'保加利亚分腿蹲',group:'腿'});
+ assert.equal(h.state.active.movements.at(-1).exercise.group,'腿');
+ assert.match(h.modalHtml,/保加利亚分腿蹲<\/b><i class="grp-tag">腿<\/i>/);
+ h.modalAction('edit-3');
+ assert.match(h.modalHtml,/name="group" value="腿" checked/,'还没写进计划也进入候选');
+ h.modalAction('back');h.modalAction('template');h.modalAction('confirm');
+ const saved=new Repository(h.storage).db;
+ const added=saved.plans[0].exercises.at(-1);
+ assert.equal(added.name,'保加利亚分腿蹲');assert.equal(added.group,'腿','更新固定计划把主类一起带过去');
+ h.action('manage');h.modalAction('add');
+ assert.match(h.modalHtml,/class="library-group">腿<\/p><button class="library-item"[^>]*>保加利亚分腿蹲/);
 });
