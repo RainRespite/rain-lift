@@ -1,18 +1,18 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName} from './data.js?v=1.9.6';
-import {createHealthUI} from './health-ui.js?v=1.9.6';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.6';
-import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.6';
-import {recordsPanel} from './records-ui.js?v=1.9.6';
-import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.6';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName,dayKey,planFixedExercises,planOptionalExercises,dailyExercises,todayExercises,pickDailyExercises} from './data.js?v=1.10.1';
+import {createHealthUI} from './health-ui.js?v=1.10.1';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.10.1';
+import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.10.1';
+import {recordsPanel} from './records-ui.js?v=1.10.1';
+import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.10.1';
 
-const APP_VERSION='1.9.6';
+const APP_VERSION='1.10.1';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=>new Date(n).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
 let repo;try{repo=new Repository(store);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
-let view='today',selected=null,historyID=null,tab='exercise',libraryGroup=null,lastTap=0,audio,awake=null,offlineReady=false;
+let view='today',selected=null,historyID=null,tab='exercise',libraryGroup=null,lastTap=0,audio,awake=null,offlineReady=false,dayPlan=null;
 let nextSet=null;
 const initialRecordsFilter={range:'30',group:null,metric:'load',weight:null};
 const recordFields={'record-range':'range','record-group':'group','record-metric':'metric','record-weight':'weight'};
@@ -31,7 +31,7 @@ function beep(){try{if(audio?.state==='running'){const o=audio.createOscillator(
 function render(){
  const active=db().active;
  if(nextSet&&(nextSet.sessionID!==active?.id||nextSet.movementID!==movement()?.id))nextSet=null;
- $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():view==='health'?healthUI.page():view==='body'?bodyUI.page():view==='library'?libraryPage():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置'],['library','动作库']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
+ $('#app').innerHTML=`<header class="top"><a href="#" data-action="nav" data-view="today" aria-label="返回训练首页">RAIN<span>/</span>LIFT</a><span id="connection-state" class="local-status">${navigator.onLine?'本机保存':'离线模式'}</span></header><main>${repo.loadError?`<aside class="warning">${esc(repo.loadError)}</aside>`:''}${view==='today'?(active?training():today()):view==='history'?history():view==='health'?healthUI.page():view==='body'?bodyUI.page():view==='library'?libraryPage():view==='day'?dayPage():settings()}</main>${active&&db().rest?restPanel():''}<nav class="bottom" aria-label="主导航">${[['today','训练'],['history','历史'],['settings','设置'],['library','动作库']].map(([id,label])=>`<button data-action="nav" data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(id)}<span>${label}</span></button>`).join('')}</nav>`;
  document.body.classList.toggle('has-timer',!!(active&&db().rest));updateClock();reloadWhenIdle();
 }
 function conflictIDs(){return [...new Set([...(db().library??[]).map(e=>e.id),...db().plans.flatMap(p=>p.exercises.map(e=>e.id)),...(db().active?.movements.map(m=>m.exercise.id)??[])])].filter(id=>identityConflict(db(),id));}
@@ -45,7 +45,55 @@ function identityResolver(id){
  same:()=>showDialog('确认是同一个动作',`<p>仅在这些名称确实代表同一个动作时确认。确认后会共享历史，训练当时的名称仍保留。</p><label>当前动作名称<select name="canonical">${names.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}</select></label><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>done(d=>confirmExerciseIdentity(d,id,String(fd.get('canonical'))),'已确认改名关联'),{back:()=>identityResolver(id)})
  });
 }
-function today(){return `<div class="page-heading"><div><p class="eyebrow">${date(Date.now())} · 今天</p><h1>今天练什么？</h1></div><button class="icon-button" data-action="plan-new" aria-label="创建计划">＋</button></div>${identityWarnings()}<button class="outline wide" data-action="profile-open">身体档案 / 修改体重</button><div class="plans">${db().plans.map((p,i)=>`<article class="plan-card"><div class="plan-index">PLAN / ${String(i+1).padStart(2,'0')}</div><div class="row"><h2>${esc(p.name)}</h2><button class="icon-button" data-action="plan-edit" data-id="${p.id}" aria-label="编辑${esc(p.name)}">···</button></div><p class="muted">${p.exercises.length} 个动作 <span class="sep">/</span> ${p.exercises.reduce((a,e)=>a+e.target,0)} 组</p><div class="plan-exercises">${p.exercises.map(e=>`<span>${esc(e.name)}</span>`).join('')}</div><button class="primary wide" data-action="start" data-id="${p.id}" ${p.exercises.length?'':'disabled'}>开始训练 <span>↗</span></button></article>`).join('')}</div><button class="outline wide" data-action="plan-new">＋ 创建训练计划</button><p class="footnote">示例计划可修改。完成一组，点一下次数就记好了。</p>${!matchMedia('(display-mode: standalone)').matches?'<aside class="install-note"><b>像 App 一样打开</b><p>在 iPhone Safari 中点“分享” → “添加到主屏幕”。首次联网打开后，等待设置页显示“离线已就绪”。</p></aside>':''}`;}
+// A plan always trains its fixed movements; the day's picks stack on top and
+// expire with the date, unless the user promotes one to fixed.
+function planCard(p,i){
+ const fixed=planFixedExercises(p),chosen=dailyExercises(db(),p),list=[...fixed,...chosen],
+  unpicked=planOptionalExercises(p).filter(e=>!chosen.some(x=>x.id===e.id)).length;
+ const slotRow=(label,items,extra='')=>items.length?`<div class="plan-slot-row"><b class="slot-label${extra}">${label}</b><div class="plan-exercises">${items.map(e=>`<span>${esc(e.name)}</span>`).join('')}</div></div>`:'';
+ return `<article class="plan-card"><div class="plan-index">PLAN / ${String(i+1).padStart(2,'0')}</div><div class="row"><h2>${esc(p.name)}</h2><button class="icon-button" data-action="plan-edit" data-id="${p.id}" aria-label="编辑${esc(p.name)}">···</button></div><p class="muted">固定 ${fixed.length} · 今日已选 ${chosen.length} <span class="sep">/</span> ${list.reduce((a,e)=>a+e.target,0)} 组${unpicked?` <span class="sep">/</span> ${unpicked} 个当日选未勾`:''}</p>${slotRow('固定',fixed)+slotRow('今日',chosen,' daily')||(list.length?'':'<p class="footnote">还没有动作，先去编辑计划添加。</p>')}<button class="primary wide" data-action="day-open" data-id="${p.id}">今日训练 <span>↗</span></button></article>`;
+}
+const dayPlanOf=()=>db().plans.find(p=>p.id===dayPlan);
+const daySelection=()=>{const p=dayPlanOf();return p?dailyExercises(db(),p).map(e=>e.id):[];};
+function dayMutate(fn,message){return mutate(d=>{const p=d.plans.find(p=>p.id===dayPlan);if(!p)throw Error('找不到这个计划，请返回训练首页。');fn(d,p);},message);}
+function dayPage(){
+ const back=`<button class="icon-button" data-action="day-back" aria-label="返回训练首页">‹</button>`,heading=title=>`<div class="page-heading"><div><p class="eyebrow">${date(Date.now())} · 今天</p><h1>${esc(title)}</h1></div>${back}</div>`;
+ const p=dayPlanOf();
+ if(!p)return `${heading('当日训练')}${identityWarnings()}<p class="muted">找不到这个计划，可能已删除。</p><button class="outline wide" data-action="day-back">返回训练首页</button>`;
+ if(db().active)return `${heading('训练进行中')}${identityWarnings()}<p class="muted">先结束或回到本次训练，才能调整今天的动作。</p><button class="primary wide" data-action="nav" data-view="today">回到本次训练</button>`;
+ const fixed=planFixedExercises(p),chosen=dailyExercises(db(),p),chosenIDs=new Set(chosen.map(e=>e.id)),
+  candidates=planOptionalExercises(p).filter(e=>!chosenIDs.has(e.id)),total=[...fixed,...chosen];
+ const row=(e,i,actions)=>`<div class="editor-item"><div><b>${i+1}. ${esc(e.name)}</b>${groupTag(e)}<small>${e.target} 组 · 休息 ${e.rest} 秒</small></div><div class="mini-actions">${actions}</div></div>`;
+ const section=(title,list,actions)=>list.length?`<section class="day-section"><h2 class="section-heading">${title}<span class="count">${list.length}</span></h2><div class="editor-list">${list.map((e,i)=>row(e,i,actions(e))).join('')}</div></section>`:'';
+ return `${heading(p.name)}${identityWarnings()}${section('固定动作',fixed,e=>`<button data-action="day-slot" data-id="${e.id}">改为当日选</button>`)}${section('今日已选',chosen,e=>`<button data-action="day-pin" data-id="${e.id}">设为固定</button><button data-action="day-pick" data-id="${e.id}">取消</button>`)}${section('计划里的当日选',candidates,e=>`<button data-action="day-pick" data-id="${e.id}">选入今天</button><button data-action="day-pin" data-id="${e.id}">设为固定</button>`)}<button class="outline wide" data-action="day-add">＋ 从动作库添加当日动作</button><p class="footnote">勾选只影响今天；「设为固定」后每天都会自动出现。</p><button class="text-button" data-action="plan-edit" data-id="${p.id}">编辑固定计划</button><button class="primary wide" data-action="start" data-id="${p.id}" ${total.length?'':'disabled'}>开始训练 <span>↗</span></button>`;
+}
+function dayAdd(){
+ const p=dayPlanOf();if(!p)return;
+ const fixedIDs=new Set(planFixedExercises(p).map(e=>e.id)),pool=libraryExercises(db()).filter(e=>!fixedIDs.has(e.id));
+ const save=(ids,message)=>{if(dayMutate((d,plan)=>pickDailyExercises(d,plan,ids),message))$('#modal').close();};
+ exercisePicker('添加当日动作',pool,list=>save(list.map(e=>e.id),'今天的动作已更新'),(selected=[])=>exerciseEditor(exercise(),saved=>{mutate(d=>putLibraryExercise(d,saved),'动作已加入动作库');save([...(selected??[]).map(e=>e.id),saved.id],'新动作已加入今天');},dayAdd),dayAdd,undefined,{multiple:true,selected:daySelection()});
+}
+function daySetSelection(ids,message){dayMutate((d,p)=>pickDailyExercises(d,p,ids),message);}
+function dayPin(id){
+ dayMutate((d,p)=>{
+  const row=p.exercises.find(x=>x.id===id);
+  if(row)delete row.optional;
+  else{
+   const src=dailyExercises(d,p).find(x=>x.id===id)??libraryExercises(d).find(x=>x.id===id);
+   if(!src)throw Error('找不到这个动作，请重新打开当日训练。');
+   const clone=structuredClone(src);delete clone.optional;p.exercises.push(clone);
+  }
+  pickDailyExercises(d,p,dailyExercises(d,p).filter(x=>x.id!==id).map(x=>x.id));
+ },'已设为固定动作');
+}
+function daySlot(id){
+ dayMutate((d,p)=>{
+  const row=p.exercises.find(x=>x.id===id);if(!row)throw Error('找不到这个动作，请重新打开当日训练。');
+  row.optional=true;
+  pickDailyExercises(d,p,[...dailyExercises(d,p).map(x=>x.id),id]);
+ },'已改为当日选，今天照旧');
+}
+function today(){return `<div class="page-heading"><div><p class="eyebrow">${date(Date.now())} · 今天</p><h1>今天练什么？</h1></div><button class="icon-button" data-action="plan-new" aria-label="创建计划">＋</button></div>${identityWarnings()}<button class="outline wide" data-action="profile-open">身体档案 / 修改体重</button><div class="plans">${db().plans.map(planCard).join('')}</div><button class="outline wide" data-action="plan-new">＋ 创建训练计划</button><p class="footnote">示例计划可修改。完成一组，点一下次数就记好了。</p>${!matchMedia('(display-mode: standalone)').matches?'<aside class="install-note"><b>像 App 一样打开</b><p>在 iPhone Safari 中点“分享” → “添加到主屏幕”。首次联网打开后，等待设置页显示“离线已就绪”。</p></aside>':''}`;}
 const effortDisplay=()=>db().effortDisplay??'rpe';
 const nextPerformance=()=>({setType:nextSet?.setType??'normal',toFailure:nextSet?.toFailure??false,effort:null});
 const suggestedWeight=(d,m)=>bodyUI.suggested(d,m,nextPerformance().setType);
@@ -257,13 +305,14 @@ function preserveTrainingInputs(){
 }
 function planEditor(plan){
  const saveName=()=>{plan.name=$('#modal [name="planName"]').value.trim()||'新计划';};
- showDialog('编辑计划',`<label>计划名称<input name="planName" value="${esc(plan.name)}" required maxlength="100"></label><p class="muted">动作与顺序 · 调整后点保存，已有训练记录保留。</p><div class="editor-list">${plan.exercises.map((e,i)=>`<div class="editor-item"><div><b>${i+1}. ${esc(e.name)}</b>${groupTag(e)}<small>${e.target} 组 · 休息 ${e.rest} 秒</small></div><div class="mini-actions"><button type="button" data-modal="edit-${i}">设置</button><button type="button" data-modal="order-${i}" aria-label="调整${esc(e.name)}的顺序">调整顺序</button><button type="button" data-modal="up-${i}" aria-label="上移动作" ${i===0?'disabled':''}>↑</button><button type="button" data-modal="down-${i}" aria-label="下移动作" ${i===plan.exercises.length-1?'disabled':''}>↓</button><button type="button" data-modal="remove-${i}" aria-label="从计划移除${esc(e.name)}">移除</button></div></div>`).join('')}</div><button class="outline wide" type="button" data-modal="add">＋ 添加动作</button>${db().plans.some(p=>p.id===plan.id)?'<button class="danger wide" type="button" data-modal="delete">删除计划</button>':''}`,fd=>{
- plan.name=String(fd.get('planName')).trim();if(mutate(d=>{const i=d.plans.findIndex(p=>p.id===plan.id),renamed=plan.exercises.filter(e=>d.plans[i]?.exercises.some(old=>old.id===e.id&&old.name!==e.name));if(i<0)d.plans.push(plan);else d.plans[i]=plan;for(const e of renamed)syncExerciseName(d,e);},'计划已保存'))$('#modal').close();
+ showDialog('编辑计划',`<label>计划名称<input name="planName" value="${esc(plan.name)}" required maxlength="100"></label><p class="muted">动作与顺序 · 调整后点保存，已有训练记录保留。</p><p class="footnote">固定 ${planFixedExercises(plan).length} · 当日选 ${planOptionalExercises(plan).length}：固定动作每天都练，当日选在「今日训练」里每天自己勾。</p><div class="editor-list">${plan.exercises.map((e,i)=>`<div class="editor-item"><div><b>${i+1}. ${esc(e.name)}</b>${groupTag(e)}${slotTag(e)}<small>${e.target} 组 · 休息 ${e.rest} 秒</small></div><div class="mini-actions"><button type="button" data-modal="edit-${i}">设置</button><button type="button" data-modal="slot-${i}">${e.optional?'设为固定':'当日选'}</button><button type="button" data-modal="order-${i}" aria-label="调整${esc(e.name)}的顺序">调整顺序</button><button type="button" data-modal="up-${i}" aria-label="上移动作" ${i===0?'disabled':''}>↑</button><button type="button" data-modal="down-${i}" aria-label="下移动作" ${i===plan.exercises.length-1?'disabled':''}>↓</button><button type="button" data-modal="remove-${i}" aria-label="从计划移除${esc(e.name)}">移除</button></div></div>`).join('')}</div><button class="outline wide" type="button" data-modal="add">＋ 添加动作</button>${db().plans.some(p=>p.id===plan.id)?'<button class="danger wide" type="button" data-modal="delete">删除计划</button>':''}`,fd=>{
+ plan.name=String(fd.get('planName')).trim();if(mutate(d=>{const i=d.plans.findIndex(p=>p.id===plan.id),renamed=plan.exercises.filter(e=>d.plans[i]?.exercises.some(old=>old.id===e.id&&old.name!==e.name));if(i<0)d.plans.push(plan);else d.plans[i]=plan;for(const e of renamed)syncExerciseName(d,e);pickDailyExercises(d,plan,dailyExercises(d,plan).map(e=>e.id));},'计划已保存'))$('#modal').close();
  },{
  add:()=>{saveName();const pool=libraryExercises(db()).filter(e=>!plan.exercises.some(x=>x.id===e.id));const addAll=list=>{const conflictID=list.map(e=>e.id).find(id=>identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}for(const e of list)plan.exercises.push(structuredClone(e));planEditor(plan);};exercisePicker('添加动作',pool,addAll,(selected=[])=>exerciseEditor(exercise(),saved=>{mutate(d=>putLibraryExercise(d,saved),'动作已加入动作库');for(const e of selected)plan.exercises.push(structuredClone(e));plan.exercises.push(saved);planEditor(plan);},()=>planEditor(plan)),()=>planEditor(plan),undefined,{multiple:true});},
  delete:()=>confirmAction('删除这个计划？','已有训练记录会保留。','删除计划',()=>mutate(d=>{d.plans=d.plans.filter(p=>p.id!==plan.id);},'计划已删除')),
  ...Object.fromEntries(plan.exercises.flatMap((e,i)=>[
  [`edit-${i}`,()=>{saveName();exerciseEditor(structuredClone(e),v=>{plan.exercises[i]=v;planEditor(plan);},()=>planEditor(plan));}],
+ [`slot-${i}`,()=>{saveName();if(e.optional)delete e.optional;else e.optional=true;planEditor(plan);}],
  [`order-${i}`,()=>{saveName();orderEditor(plan.exercises,e.id,e.name,position=>moveToPosition(plan.exercises,e.id,position),()=>planEditor(plan));}],
  [`remove-${i}`,()=>{saveName();plan.exercises.splice(i,1);planEditor(plan);}],
  [`up-${i}`,()=>{saveName();[plan.exercises[i-1],plan.exercises[i]]=[plan.exercises[i],plan.exercises[i-1]];planEditor(plan);}],
@@ -280,6 +329,7 @@ function progressionSettings(e){
   <p class="footnote">次数范围用于建议。目标组数和三个次数快捷键在上方分别设置。</p></details>`;
 }
 
+const slotTag=e=>`<i class="slot-tag${e.optional?' daily':''}">${e.optional?'当日选':'固定'}</i>`;
 const groupTag=e=>{const g=exerciseGroupLabel(e);return g?`<i class="grp-tag">${esc(g)}</i>`:'';};
 const groupPicker=e=>{const current=exerciseGroupLabel(e)??'';return `<p class="muted">主类 · 选填，用于给动作归类</p><div class="grp-chips">${usedExerciseGroups(db()).map(g=>`<label class="grp-chip"><input type="radio" name="group" value="${esc(g)}"${g===current?' checked':''}><span>${esc(g)}</span></label>`).join('')}${current?'<label class="grp-chip clear"><input type="radio" name="group" value=""><span>清除</span></label>':''}<label class="grp-chip new"><span>自定义</span><input name="groupNew" maxlength="24" placeholder="新类名" autocomplete="off"></label></div>`;};
 function exerciseEditor(e,save,back,{library=false,category=null}={}){if(identityConflict(db(),e.id)){identityResolver(e.id);return;}showDialog('动作设置',`<label>动作名称<input name="name" value="${esc(e.name)}" required maxlength="100"></label><p class="footnote">修改名称会延续这个动作的全部历史。不同动作请返回后选择“创建新动作”。</p>${library?groupPicker(e):category?`<p class="footnote">保存后会加入「${esc(category)}」主类。</p>`:'<p class="footnote">主类在底栏「动作库」里设置。</p>'}<div class="form-grid"><label>初始重量<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${e.weight}" required></label><label>单位<input name="unit" maxlength="20" value="${esc(e.unit)}"></label><label>加减步长<input name="step" type="number" inputmode="decimal" min=".01" max="1000" step="any" value="${e.step}" required></label><label>目标普通工作组数<input name="target" type="number" inputmode="numeric" min="1" max="99" value="${e.target}" required></label></div><label>每组休息（秒）<input name="rest" type="number" inputmode="numeric" min="15" max="3600" value="${e.rest}" required></label><p class="muted">三个次数快捷键 · 请填写不同次数</p><div class="form-grid three">${e.reps.map((n,i)=>`<label>按钮 ${i+1}<input name="r${i}" type="number" inputmode="numeric" min="1" max="999" value="${n}" required></label>`).join('')}</div>${progressionSettings(e)}<p class="footnote">哑铃记单只还是总重量，由你自己约定；自重可填 0。</p><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>{
@@ -386,7 +436,7 @@ function setEditor(m,entry,sessionID=null){
  }
 }
 function manage(){if(!preserveTrainingInputs())return;const movements=db().active.movements,sessionID=db().active.id;const move=(id,position)=>mutate(d=>{if(d.active?.id!==sessionID)throw Error('当前训练已改变，请重新打开调整动作。');moveToPosition(d.active.movements,id,position);});showDialog('调整本次训练',`<p class="muted">改名会同步到计划，其他调整只影响今天。未记录的动作可移除；已记录的动作可跳过，保留已完成的组。</p><div class="editor-list">${movements.map((m,i)=>`<div class="editor-item"><div><b>${i+1}. ${esc(m.exercise.name)}</b>${groupTag(m.exercise)}<small>${m.skipped?'已跳过':m.sets.length+' 组已完成'}</small></div><div class="mini-actions"><button type="button" data-modal="edit-${i}">设置</button><button type="button" data-modal="order-${i}" aria-label="调整${esc(m.exercise.name)}的顺序">调整顺序</button><button type="button" data-modal="skip-${i}">${m.skipped?'恢复':'跳过'}</button>${!m.sets.length?`<button type="button" data-modal="replace-${i}">更换</button><button type="button" data-modal="remove-${i}" aria-label="从本次训练移除${esc(m.exercise.name)}">移除</button>`:''}<button type="button" data-modal="up-${i}" ${i===0?'disabled':''} aria-label="上移动作">↑</button><button type="button" data-modal="down-${i}" ${i===movements.length-1?'disabled':''} aria-label="下移动作">↓</button></div></div>`).join('')}</div><button type="button" class="outline wide" data-modal="add">＋ 添加动作</button><button type="button" class="outline wide" data-modal="template">更新固定计划</button>`,()=>$('#modal').close(),{
- add:()=>pickExercise(),template:()=>confirmAction('更新固定计划？','把本次未跳过的动作和顺序保存到原计划，已有历史不变。','更新计划',()=>mutate(d=>{const s=d.active,seen=new Set(),p={id:s.planID,name:s.name,exercises:s.movements.filter(m=>!m.skipped).map(m=>structuredClone(m.exercise)).filter(e=>!seen.has(e.id)&&seen.add(e.id))};const i=d.plans.findIndex(p=>p.id===s.planID);if(i<0)d.plans.push(p);else d.plans[i]=p;},'计划已更新')),
+ add:()=>pickExercise(),template:()=>confirmAction('更新固定计划？','把本次未跳过的动作和顺序保存到原计划，已有历史不变。标记为「当日选」的动作仍是当日选，今天的勾选保持不变。','更新计划',()=>mutate(d=>{const s=d.active,seen=new Set(),i=d.plans.findIndex(p=>p.id===s.planID),exercises=s.movements.filter(m=>!m.skipped).map(m=>structuredClone(m.exercise)).filter(e=>!seen.has(e.id)&&seen.add(e.id)),p={...(i<0?{}:d.plans[i]),id:s.planID,name:s.name,exercises};if(i<0)d.plans.push(p);else d.plans[i]=p;},'计划已更新')),
  ...Object.fromEntries(movements.flatMap((m,i)=>[
  [`edit-${i}`,()=>exerciseEditor(structuredClone(m.exercise),e=>{if(mutate(d=>{const x=d.active.movements.find(x=>x.id===m.id),renamed=x.exercise.name!==e.name;if(x.exercise.id!==e.id)delete x.overrideWeight;x.exercise=e;if(renamed)syncExerciseName(d,e);}))manage();},manage)],
  [`order-${i}`,()=>orderEditor(db().active.movements,m.id,m.exercise.name,position=>move(m.id,position),manage)],
@@ -439,8 +489,14 @@ function pickExercise(replaceID=null){
 }
 
 $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.preventDefault();const m=movement(),a=b.dataset.action;
- if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;libraryGroup=null;render();scrollTo(0,0);}
- else if(a==='start'){if(mutate(d=>bodyUI.start(d,b.dataset.id))){unlockAudio();selected=null;scrollTo(0,0);}}
+ if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;libraryGroup=null;dayPlan=null;render();scrollTo(0,0);}
+ else if(a==='start'){const back=[view,dayPlan];dayPlan=null;view='today';if(mutate(d=>bodyUI.start(d,b.dataset.id))){unlockAudio();selected=null;scrollTo(0,0);}else[view,dayPlan]=back;}
+ else if(a==='day-open'){dayPlan=b.dataset.id;view='day';render();scrollTo(0,0);}
+ else if(a==='day-back'){dayPlan=null;view='today';render();scrollTo(0,0);}
+ else if(a==='day-add')dayAdd();
+ else if(a==='day-pick'){const id=b.dataset.id,cur=daySelection(),has=cur.includes(id);daySetSelection(has?cur.filter(x=>x!==id):[...cur,id],has?'已从今天取消':'已加入今天');}
+ else if(a==='day-pin')dayPin(b.dataset.id);
+ else if(a==='day-slot')daySlot(b.dataset.id);
  else if(a==='select'){if(!preserveTrainingInputs())return;selected=b.dataset.id;render();}
  else if(a==='next-set-type'||a==='next-set-failure'){
   if(!m||!preserveTrainingInputs())return;

@@ -1,0 +1,11 @@
+✔ a v1.9.6 plan trains every movement as fixed and stores no day fields (1.960542ms)
+✔ v1.9.6 code reads a plan with day picks and keeps both fields untouched (1.462791ms)
+✔ a v1.9.6 session already in progress finishes on v1.10.1 unchanged (0.390833ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.53125

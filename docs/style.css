@@ -96,3 +96,11 @@
 .picker-hint{margin:0 0 12px}
 .library-item.picked{background:var(--surface2);box-shadow:inset 3px 0 var(--accent)}
 .library-item.picked span{font-weight:700}
+.plan-slot-row{display:flex;align-items:flex-start;gap:10px;margin:14px 0}
+.plan-slot-row .plan-exercises{margin:0;flex:1}
+.slot-label{flex-shrink:0;font-size:12px;letter-spacing:.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.slot-label.daily{color:#ffd479;border-color:#5a4a24;background:#2b2718}
+.slot-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:100px;background:var(--surface2);color:var(--muted);font-size:12px;font-style:normal;vertical-align:2px}
+.slot-tag.daily{color:#ffd479;background:#2b2718}
+.day-section{margin-top:26px}
+.day-section .section-heading{margin:0 0 12px}

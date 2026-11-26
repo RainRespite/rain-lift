@@ -1,10 +1,12 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.9.6';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.6';
-import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.6';
+import {validateLoad,validateSnapshot} from './load.js?v=1.10.1';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.10.1';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.10.1';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const EXERCISE_GROUPS=['背','肩','胸','腿','核心','手臂'];
 export const uid=()=>crypto.randomUUID();
+export const dayKey=(now=Date.now())=>{const d=new Date(now);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const DATE_KEY=/^\d{4}-\d{2}-\d{2}$/;
 export const exercise=(name='新动作',weight=20,reps=[8,9,10],rest=90)=>({id:uid(),name,weight,unit:'kg',step:2.5,reps,rest,target:3});
 export function initial(){return {format:'rainlift-web',version:1,plans:[{id:uid(),name:'拉 · 背部与二头',exercises:[exercise('宽距高位下拉',40),exercise('坐姿划船',35),exercise('哑铃弯举',10,[10,12,15],60)]},{id:uid(),name:'推 · 胸肩与三头',exercises:[exercise('卧推',40,[8,9,10],120),exercise('哑铃肩推',12.5),exercise('侧平举',5,[12,15,20],60)]}],history:[],active:null,rest:null};}
 const finite=(x,min,max)=>typeof x==='number'&&Number.isFinite(x)&&x>=min&&x<=max;
@@ -14,12 +16,14 @@ const text=x=>typeof x==='string'&&x.trim().length>0&&x.length<=200;
 // training store; the writers below always normalize before saving.
 const groupText=x=>x==null||(typeof x==='string'&&x.trim().length>0&&x.length<=24);
 const ids=xs=>Array.isArray(xs)&&xs.every(x=>text(x.id))&&new Set(xs.map(x=>x.id)).size===xs.length;
+// A plan's daily picks live on the plan and are stamped with the local date.
+const dailyPicks=p=>p.daily===undefined||!!(p.daily&&typeof p.daily==='object'&&DATE_KEY.test(p.daily.date)&&Array.isArray(p.daily.ids)&&p.daily.ids.every(text)&&new Set(p.daily.ids).size===p.daily.ids.length);
 export function validate(d){
- const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999))&&groupText(e.group)&&(e.progression===undefined||validateProgression(e.progression));
+ const ex=e=>e&&text(e.id)&&text(e.name)&&(e.knownNames==null||(Array.isArray(e.knownNames)&&e.knownNames.every(text)&&e.knownNames.includes(e.name)))&&typeof e.unit==='string'&&e.unit.length<=30&&finite(e.weight,0,10000)&&finite(e.step,.01,1000)&&integer(e.target,1,99)&&integer(e.rest,15,3600)&&Array.isArray(e.reps)&&e.reps.length===3&&new Set(e.reps).size===3&&e.reps.every(r=>integer(r,1,999))&&groupText(e.group)&&(e.optional===undefined||typeof e.optional==='boolean')&&(e.progression===undefined||validateProgression(e.progression));
  const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit))&&(s.performance===undefined||validatePerformance(s.performance))&&(s.progressionTarget===undefined||validateProgressionTarget(s.progressionTarget));
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(s=>set(s,m.exercise.unit))&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement)&&(s.loadSchemaVersion===undefined||d.version===2&&s.loadSchemaVersion===1&&validateSnapshot(s.bodyWeightSnapshot)&&s.movements.every(m=>m.sets.every(set=>set.load)));
- if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||(d.library!==undefined&&(!Array.isArray(d.library)||!ids(d.library)||!d.library.every(ex)))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
+ if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex)&&dailyPicks(p))||(d.library!==undefined&&(!Array.isArray(d.library)||!ids(d.library)||!d.library.every(ex)))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
  if(d.effortDisplay!==undefined&&!EFFORT_DISPLAYS.includes(d.effortDisplay))throw Error('强度显示偏好无效。');
  if(d.rest!=null&&(!text(d.rest.setID)||!text(d.rest.name)||!finite(d.rest.end,0,1e15)||!d.active?.movements.some(m=>m.sets.some(s=>s.id===d.rest.setID))))throw Error('备份中的休息计时无效。');
  return d;
@@ -51,8 +55,11 @@ export function libraryExercises(d){
  });
 }
 export function putLibraryExercise(d,e){
+ // Fixed-vs-daily belongs to the plan, never to the shared library row, so a
+ // definition cloned out of a plan cannot smuggle its slot into the library.
+ const row=structuredClone(e);delete row.optional;
  const library=d.library??=[],index=library.findIndex(x=>x.id===e.id);
- if(index<0)library.push(structuredClone(e));else library[index]=structuredClone(e);
+ if(index<0)library.push(row);else library[index]=row;
 }
 // Deleted snapshots are retained for recovery, but do not prove live aliases or
 // contribute recommendations. Explicit identity splits still update their IDs.
@@ -87,6 +94,30 @@ export function syncExerciseName(d,e){
  const refs=currentReferences(d,e.id),names=[...new Set([e.name,...(e.knownNames??[]),...refs.flatMap(x=>[x.name,...(x.knownNames??[])])])];
  for(const x of refs){x.name=e.name;x.knownNames=[...names];}
  if(d.rest&&d.active?.movements.some(m=>m.exercise.id===e.id&&m.sets.some(s=>s.id===d.rest.setID)))d.rest.name=e.name;
+}
+export const planFixedExercises=p=>(p?.exercises??[]).filter(e=>!e.optional);
+export const planOptionalExercises=p=>(p?.exercises??[]).filter(e=>e.optional);
+// Today's picks resolve by identity: the plan's own copy wins so its weight and
+// rest settings carry, otherwise the library definition is used. A pick whose
+// movement was deleted simply drops out.
+export function dailyExercises(d,plan,now=Date.now()){
+ const stored=plan?.daily,ids=stored?.date===dayKey(now)&&Array.isArray(stored.ids)?stored.ids:[];
+ const fixed=new Set(planFixedExercises(plan).map(e=>e.id)),byID=new Map();
+ for(const e of libraryExercises(d))if(!fixed.has(e.id))byID.set(e.id,e);
+ for(const e of planOptionalExercises(plan))byID.set(e.id,e);
+ return [...new Set(ids)].map(id=>byID.get(id)).filter(Boolean);
+}
+export function todayExercises(d,plan,now=Date.now()){
+ const seen=new Set();
+ return [...planFixedExercises(plan),...dailyExercises(d,plan,now)].filter(e=>!seen.has(e.id)&&seen.add(e.id)).map(e=>structuredClone(e));
+}
+// The single writer for a day's picks; an empty selection stores nothing.
+export function pickDailyExercises(d,plan,ids,now=Date.now()){
+ const fixed=new Set(planFixedExercises(plan).map(e=>e.id)),
+  valid=new Set([...planOptionalExercises(plan).map(e=>e.id),...libraryExercises(d).map(e=>e.id)]);
+ const list=[...new Set(ids)].filter(id=>!fixed.has(id)&&valid.has(id));
+ if(list.length)plan.daily={date:dayKey(now),ids:list};else delete plan.daily;
+ return list;
 }
 // Different historical names can be rename snapshots. Concurrent definitions
 // need an explicit alias lineage before they can safely share recommendations.
@@ -130,7 +161,8 @@ export function reviseExercise(d,original,changes,mode='rename'){
 }
 export function previous(d,id,unit=null){if(identityConflict(d,id))return;return [...d.history].sort((a,b)=>b.started-a.started).flatMap(s=>s.movements).find(m=>m.exercise.id===id&&m.sets.length&&(unit===null||m.exercise.unit===unit));}
 export function suggested(d,m){return m.overrideWeight??previous(d,m.exercise.id,m.exercise.unit)?.sets[m.sets.length]?.weight??m.sets.at(-1)?.weight??m.exercise.weight;}
-export function start(d,planID,snapshot){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID);if(!p?.exercises.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:p.exercises.map(e=>({id:uid(),exercise:structuredClone(e),sets:[],skipped:false}))};if(snapshot){validateSnapshot(snapshot);d.version=2;d.active.loadSchemaVersion=1;d.active.bodyWeightSnapshot=structuredClone(snapshot);}}
+// A session is the plan's fixed movements plus whatever was picked for today.
+export function start(d,planID,snapshot){if(d.active)throw Error('请先结束当前训练。');const p=d.plans.find(p=>p.id===planID),movements=todayExercises(d,p);if(!movements.length)throw Error('请先添加动作。');d.active={id:uid(),planID:p.id,name:p.name,started:Date.now(),ended:null,note:'',movements:movements.map(e=>({id:uid(),exercise:e,sets:[],skipped:false}))};if(snapshot){validateSnapshot(snapshot);d.version=2;d.active.loadSchemaVersion=1;d.active.bodyWeightSnapshot=structuredClone(snapshot);}}
 export function record(d,id,reps,weight,timed=true,now=Date.now(),load,performance){
  const m=d.active?.movements.find(m=>m.id===id);
  if(!m)throw Error('请先选择动作。');
