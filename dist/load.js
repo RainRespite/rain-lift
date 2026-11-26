@@ -1,4 +1,4 @@
-import {setTypeOf} from './performance.js?v=1.9.5';
+import {setTypeOf} from './performance.js?v=1.9.6';
 
 // Pure contracts shared by data, UI and report. No storage or name inference.
 export const LOAD_MODES=['external','assisted','unknown','bodyweight_plus_extra'];

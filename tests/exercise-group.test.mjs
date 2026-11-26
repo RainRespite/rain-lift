@@ -5,6 +5,11 @@ import {exportFull,restoreFull} from '../dist/backup.js';
 import {createAppHarness,Storage} from './helpers/app-harness.mjs';
 
 const withGroup=(d,name,group)=>{d.plans[0].exercises=[{...exercise(name),group}];return d;};
+const pickAction=(html,name)=>{
+ const row=[...html.matchAll(/data-modal="pick-(\d+)"[^>]*>([^<]+)<span>/g)].find(match=>match[2]===name);
+ assert.ok(row,`未在列表中找到 ${name}`);
+ return `pick-${row[1]}`;
+};
 
 test('exercises and library entries stay valid with optional categories',()=>{
  const plain=initial();validate(plain);
@@ -99,12 +104,15 @@ test('the repository stores library entries so training backups keep them',()=>{
  assert.equal(Object.hasOwn(JSON.parse(storage.getItem(KEY)).library[0],'group'),false);
 });
 
-test('the bottom library tab sets categories while plan editing only shows the tag',()=>{
+test('the library starts with main categories and plan editing only shows the tag',()=>{
  const d=initial(),h=createAppHarness(d);
  assert.match(h.html,/data-view="library"[^>]*>[\s\S]*动作库/,'底栏有动作库标签');
  h.action('nav',{view:'library'});
  assert.match(h.html,/class="active"[^>]*data-view="library"|data-view="library"[^>]*class="active"/,'动作库页面已选中');
- assert.match(h.html,/动作库/);assert.match(h.html,/无主类/);
+ assert.match(h.html,/data-action="library-group" data-group="背"/);
+ assert.match(h.html,/data-action="library-group" data-group="手臂"/);
+ assert.doesNotMatch(h.html,/宽距高位下拉/,'动作库首页只列主类，不直接铺开动作');
+ assert.match(h.html,/还有 6 个未分类动作/);
  h.action('nav',{view:'today'});
  h.action('plan-edit',{id:d.plans[0].id});
  h.modalAction('edit-0');
@@ -112,15 +120,22 @@ test('the bottom library tab sets categories while plan editing only shows the t
  assert.match(h.modalHtml,/主类在底栏「动作库」里设置/);
  h.modalAction('close');
  h.action('nav',{view:'library'});
- const first=d.plans[0].exercises[0];
- h.action('library-edit',{id:first.id,name:first.name});
- for(const label of ['背','肩','胸','腿','核心','手臂'])assert.ok(h.modalHtml.includes(`value="${label}"`),label);
- assert.doesNotMatch(h.modalHtml,/value="" checked/,'未分类时不预选');
- assert.doesNotMatch(h.modalHtml,/未分类/);
- h.submit({group:'背'});
+ h.action('library-group',{group:'背'});
+ assert.match(h.html,/data-action="library-add" data-group="背"/);
+ assert.match(h.html,/这个主类还没有动作/);
+ h.action('library-add',{group:'背'});
+ assert.match(h.modalHtml,/添加动作到「背」/);
+ assert.match(h.modalHtml,/只显示未分类动作/);
+ assert.match(h.modalHtml,/宽距高位下拉/);
+ assert.match(h.modalHtml,/加入「背」（已选 0）/);
+ h.modalAction(pickAction(h.modalHtml,'宽距高位下拉'));
+ assert.match(h.modalHtml,/加入「背」（已选 1）/);
+ h.modalAction('confirm');
  assert.equal(h.modalOpen,false);
  assert.equal(h.state.plans[0].exercises[0].group,'背');
  assert.equal(h.state.library[0].name,'宽距高位下拉','设置分类时动作进入动作库');
+ assert.match(h.html,/宽距高位下拉/);
+ assert.match(h.html,/1 个动作/);
  h.action('nav',{view:'today'});
  h.action('plan-edit',{id:d.plans[0].id});
  assert.match(h.modalHtml,/class="editor-item"><div><b>1\. 宽距高位下拉<\/b><i class="grp-tag">背<\/i>/);
@@ -131,51 +146,70 @@ test('the bottom library tab sets categories while plan editing only shows the t
 test('a custom category created in the library becomes selectable and clearing removes it',()=>{
  const d=initial(),h=createAppHarness(d);
  h.action('nav',{view:'library'});
+ h.action('library-group',{group:'背'});
+ h.action('library-add',{group:'背'});
+ h.modalAction(pickAction(h.modalHtml,'宽距高位下拉'));
+ h.modalAction('confirm');
  const first=d.plans[0].exercises[0];
  h.action('library-edit',{id:first.id,name:first.name});
  h.submit({groupNew:' 有氧 '});
  assert.equal(new Repository(h.storage).db.plans[0].exercises[0].group,'有氧');
- assert.match(h.html,/grp-tag">有氧/);
+ h.action('library-home');
+ assert.match(h.html,/data-action="library-group" data-group="有氧"/,'新类作为主类卡片出现');
+ h.action('library-group',{group:'有氧'});
+ h.action('library-add',{group:'有氧'});
+ h.modalAction(pickAction(h.modalHtml,'坐姿划船'));
+ h.modalAction('confirm');
  const second=d.plans[0].exercises[1];
- h.action('library-edit',{id:second.id,name:second.name});
- assert.match(h.modalHtml,/name="group" value="有氧"/,'新类成为其他动作的候选');
- h.submit({group:'有氧'});
  assert.equal(new Repository(h.storage).db.plans[0].exercises[1].group,'有氧');
  h.action('library-edit',{id:first.id,name:first.name});
+ assert.match(h.modalHtml,/name="group" value="有氧"/,'新类成为其他动作的候选');
  assert.match(h.modalHtml,/value="有氧" checked/);assert.match(h.modalHtml,/value=""><span>清除/);
  h.submit({group:''});
  const saved=new Repository(h.storage).db;
  assert.equal(Object.hasOwn(saved.plans[0].exercises[0],'group'),false);
  assert.equal(Object.hasOwn(saved.library[0],'group'),false);
  assert.equal(saved.plans[0].exercises[1].group,'有氧','另一个动作仍在使用时候选保留');
+ h.action('library-home');
+ assert.match(h.html,/data-action="library-group" data-group="有氧"/);
+ h.action('library-group',{group:'有氧'});
  h.action('library-edit',{id:second.id,name:second.name});
  assert.match(h.modalHtml,/value="有氧" checked/,'还在用的分类仍可选');
  h.submit({group:''});
- h.action('library-edit',{id:first.id,name:first.name});
- assert.doesNotMatch(h.modalHtml,/name="group" value="有氧"/,'不再被使用就退出候选');
- assert.doesNotMatch(h.modalHtml,/name="group" value=""</,'没有已选分类时不出现清除');
+ h.action('library-home');
+ assert.doesNotMatch(h.html,/data-action="library-group" data-group="有氧"/,'不再被使用就退出候选');
+ assert.match(h.html,/还有 6 个未分类动作/);
 });
 
 test('an ambiguous category entry keeps the typed name over the radio and survives a reload',()=>{
  const d=initial(),h=createAppHarness(d);
  h.action('nav',{view:'library'});
+ h.action('library-group',{group:'腿'});
+ h.action('library-add',{group:'腿'});
+ h.modalAction(pickAction(h.modalHtml,'坐姿划船'));
+ h.modalAction('confirm');
  const second=d.plans[0].exercises[1];
  h.action('library-edit',{id:second.id,name:second.name});
  h.submit({group:'腿',groupNew:'小腿'});
  assert.equal(new Repository(h.storage).db.library[0].group,'小腿');
- assert.match(h.html,/grp-tag">小腿/);
+ h.action('library-home');
+ assert.match(h.html,/data-action="library-group" data-group="小腿"/);
 });
 
 test('a library action can be added to a plan through the category picker',()=>{
  const d=initial(),h=createAppHarness(d);
  h.action('nav',{view:'library'});
- h.action('library-new');
- assert.match(h.modalHtml,/name="group"/,'动作库里新建时可选主类');
- h.submit({name:'绳索下压',unit:'kg',weight:'15',step:'1',target:'3',rest:'60',r0:'10',r1:'12',r2:'15',group:'手臂'});
+ h.action('library-group',{group:'手臂'});
+ h.action('library-add',{group:'手臂'});
+ h.modalAction('new');
+ assert.doesNotMatch(h.modalHtml,/name="group"/,'从大类新建时直接归入当前主类');
+ assert.match(h.modalHtml,/保存后会加入「手臂」主类/);
+ h.submit({name:'绳索下压',unit:'kg',weight:'15',step:'1',target:'3',rest:'60',r0:'10',r1:'12',r2:'15'});
  assert.equal(h.modalOpen,false);
  assert.equal(h.state.library.length,1);
  assert.equal(h.state.library[0].group,'手臂');
- assert.match(h.html,/绳索下压/);assert.match(h.html,/grp-tag">手臂/);
+ assert.match(h.html,/绳索下压/);
+ assert.match(h.html,/<h1>手臂<\/h1>/);
  h.action('nav',{view:'today'});
  h.action('plan-edit',{id:d.plans[1].id});
  h.modalAction('add');
@@ -187,6 +221,33 @@ test('a library action can be added to a plan through the category picker',()=>{
  h.submit();
  assert.equal(h.state.plans[1].exercises.some(e=>e.name==='绳索下压'),true);
  assert.equal(h.state.library.length,1,'引用库内动作不会复制出第二条');
+});
+
+test('a category page multi-selects uncategorized actions into that category',()=>{
+ const d=initial();d.plans[1].exercises[0].group='腿';
+ const h=createAppHarness(d);
+ h.action('nav',{view:'library'});
+ h.action('library-group',{group:'背'});
+ h.action('library-add',{group:'背'});
+ assert.match(h.modalHtml,/只显示未分类动作/);
+ assert.match(h.modalHtml,/宽距高位下拉/);
+ assert.doesNotMatch(h.modalHtml,/>卧推<span>/,'已有主类的动作不进入未分类列表');
+ h.modalAction(pickAction(h.modalHtml,'宽距高位下拉'));
+ h.modalAction(pickAction(h.modalHtml,'坐姿划船'));
+ assert.match(h.modalHtml,/加入「背」（已选 2）/);
+ h.modalAction(pickAction(h.modalHtml,'宽距高位下拉'));
+ assert.match(h.modalHtml,/加入「背」（已选 1）/,'再点一次可取消选择');
+ h.modalAction(pickAction(h.modalHtml,'宽距高位下拉'));
+ h.modalAction('confirm');
+ assert.equal(h.modalOpen,false);
+ assert.equal(h.state.plans[0].exercises[0].group,'背');
+ assert.equal(h.state.plans[0].exercises[1].group,'背');
+ assert.equal(h.state.plans[0].exercises[2].group,undefined,'未选中的动作保持未分类');
+ assert.equal(h.state.plans[1].exercises[0].group,'腿','其他主类不受影响');
+ assert.deepEqual(h.state.library.map(e=>[e.name,e.group]),[['坐姿划船','背'],['宽距高位下拉','背']],'按最后选择顺序写入');
+ assert.match(h.html,/2 个动作/);
+ h.action('library-home');
+ assert.match(h.html,/data-group="背"[\s\S]*2 个动作/);
 });
 
 test('a plan can add several actions across categories in one selection',()=>{
@@ -266,7 +327,11 @@ test('the in-session picker lists library actions and new session actions join t
  assert.match(h.modalHtml,/保加利亚分腿蹲/);
  h.modalAction('close');
  h.action('nav',{view:'library'});
- assert.match(h.html,/保加利亚分腿蹲/);
+ assert.match(h.html,/还有 6 个未分类动作/);
+ h.action('library-group',{group:'背'});
+ assert.match(h.html,/面拉/);
+ h.action('library-add',{group:'背'});
+ assert.match(h.modalHtml,/保加利亚分腿蹲/);
 });
 
 test('replacing a movement opens the picker on its own category',()=>{

@@ -1,18 +1,18 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName} from './data.js?v=1.9.5';
-import {createHealthUI} from './health-ui.js?v=1.9.5';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.5';
-import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.5';
-import {recordsPanel} from './records-ui.js?v=1.9.5';
-import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.5';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName} from './data.js?v=1.9.6';
+import {createHealthUI} from './health-ui.js?v=1.9.6';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.6';
+import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.6';
+import {recordsPanel} from './records-ui.js?v=1.9.6';
+import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.6';
 
-const APP_VERSION='1.9.5';
+const APP_VERSION='1.9.6';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}),date=n=>new Date(n).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
 let repo;try{repo=new Repository(store);}catch{repo={db:initial(),writable:false,loadError:'浏览器存储不可用，请退出无痕浏览或检查浏览器设置。',change(){throw Error(this.loadError);}};}
-let view='today',selected=null,historyID=null,tab='exercise',lastTap=0,audio,awake=null,offlineReady=false;
+let view='today',selected=null,historyID=null,tab='exercise',libraryGroup=null,lastTap=0,audio,awake=null,offlineReady=false;
 let nextSet=null;
 const initialRecordsFilter={range:'30',group:null,metric:'load',weight:null};
 const recordFields={'record-range':'range','record-group':'group','record-metric':'metric','record-weight':'weight'};
@@ -282,7 +282,7 @@ function progressionSettings(e){
 
 const groupTag=e=>{const g=exerciseGroupLabel(e);return g?`<i class="grp-tag">${esc(g)}</i>`:'';};
 const groupPicker=e=>{const current=exerciseGroupLabel(e)??'';return `<p class="muted">主类 · 选填，用于给动作归类</p><div class="grp-chips">${usedExerciseGroups(db()).map(g=>`<label class="grp-chip"><input type="radio" name="group" value="${esc(g)}"${g===current?' checked':''}><span>${esc(g)}</span></label>`).join('')}${current?'<label class="grp-chip clear"><input type="radio" name="group" value=""><span>清除</span></label>':''}<label class="grp-chip new"><span>自定义</span><input name="groupNew" maxlength="24" placeholder="新类名" autocomplete="off"></label></div>`;};
-function exerciseEditor(e,save,back,{library=false}={}){if(identityConflict(db(),e.id)){identityResolver(e.id);return;}showDialog('动作设置',`<label>动作名称<input name="name" value="${esc(e.name)}" required maxlength="100"></label><p class="footnote">修改名称会延续这个动作的全部历史。不同动作请返回后选择“创建新动作”。</p>${library?'':'<p class="footnote">主类在底栏「动作库」里设置。</p>'}${library?groupPicker(e):''}<div class="form-grid"><label>初始重量<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${e.weight}" required></label><label>单位<input name="unit" maxlength="20" value="${esc(e.unit)}"></label><label>加减步长<input name="step" type="number" inputmode="decimal" min=".01" max="1000" step="any" value="${e.step}" required></label><label>目标普通工作组数<input name="target" type="number" inputmode="numeric" min="1" max="99" value="${e.target}" required></label></div><label>每组休息（秒）<input name="rest" type="number" inputmode="numeric" min="15" max="3600" value="${e.rest}" required></label><p class="muted">三个次数快捷键 · 请填写不同次数</p><div class="form-grid three">${e.reps.map((n,i)=>`<label>按钮 ${i+1}<input name="r${i}" type="number" inputmode="numeric" min="1" max="999" value="${n}" required></label>`).join('')}</div>${progressionSettings(e)}<p class="footnote">哑铃记单只还是总重量，由你自己约定；自重可填 0。</p><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>{
+function exerciseEditor(e,save,back,{library=false,category=null}={}){if(identityConflict(db(),e.id)){identityResolver(e.id);return;}showDialog('动作设置',`<label>动作名称<input name="name" value="${esc(e.name)}" required maxlength="100"></label><p class="footnote">修改名称会延续这个动作的全部历史。不同动作请返回后选择“创建新动作”。</p>${library?groupPicker(e):category?`<p class="footnote">保存后会加入「${esc(category)}」主类。</p>`:'<p class="footnote">主类在底栏「动作库」里设置。</p>'}<div class="form-grid"><label>初始重量<input name="weight" type="number" inputmode="decimal" min="0" max="10000" step="any" value="${e.weight}" required></label><label>单位<input name="unit" maxlength="20" value="${esc(e.unit)}"></label><label>加减步长<input name="step" type="number" inputmode="decimal" min=".01" max="1000" step="any" value="${e.step}" required></label><label>目标普通工作组数<input name="target" type="number" inputmode="numeric" min="1" max="99" value="${e.target}" required></label></div><label>每组休息（秒）<input name="rest" type="number" inputmode="numeric" min="15" max="3600" value="${e.rest}" required></label><p class="muted">三个次数快捷键 · 请填写不同次数</p><div class="form-grid three">${e.reps.map((n,i)=>`<label>按钮 ${i+1}<input name="r${i}" type="number" inputmode="numeric" min="1" max="999" value="${n}" required></label>`).join('')}</div>${progressionSettings(e)}<p class="footnote">哑铃记单只还是总重量，由你自己约定；自重可填 0。</p><button type="button" class="outline wide" data-modal="back">返回</button>`,fd=>{
  const updated={...e,name:String(fd.get('name')).trim(),unit:String(fd.get('unit')),weight:+fd.get('weight'),step:+fd.get('step'),target:+fd.get('target'),rest:+fd.get('rest'),reps:[0,1,2].map(i=>+fd.get('r'+i))};
  if(new Set(updated.reps).size!==3){toast('三个快捷次数不能相同');return;}
  try{
@@ -439,7 +439,7 @@ function pickExercise(replaceID=null){
 }
 
 $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.preventDefault();const m=movement(),a=b.dataset.action;
- if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;render();scrollTo(0,0);}
+ if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;libraryGroup=null;render();scrollTo(0,0);}
  else if(a==='start'){if(mutate(d=>bodyUI.start(d,b.dataset.id))){unlockAudio();selected=null;scrollTo(0,0);}}
  else if(a==='select'){if(!preserveTrainingInputs())return;selected=b.dataset.id;render();}
  else if(a==='next-set-type'||a==='next-set-failure'){
@@ -548,26 +548,68 @@ function libraryUsage(e){
  const plans=db().plans.filter(p=>p.exercises.some(x=>x.id===e.id)).length,active=db().active?.movements.some(m=>m.exercise.id===e.id);
  return [plans?`${plans} 个计划`:'',active?'本次训练':''].filter(Boolean).join(' · ')||'仅在动作库';
 }
+const byLibraryName=(a,b)=>a.name.localeCompare(b.name,'zh-CN');
+const libraryItems=(group,all=libraryExercises(db()))=>all.filter(e=>exerciseGroupLabel(e)===group).sort(byLibraryName);
 function libraryPage(){
- const all=libraryExercises(db());
- const sections=usedExerciseGroups(db()).map(label=>[label,all.filter(e=>exerciseGroupLabel(e)===label).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'))]).filter(([,items])=>items.length);
- const loose=all.filter(e=>!exerciseGroupLabel(e)).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'));
- if(loose.length)sections.push([null,loose]);
- return `<div class="page-heading"><div><p class="eyebrow">自己创建的动作</p><h1>动作库</h1></div><button class="icon-button" data-action="library-new" aria-label="新建动作">＋</button></div>${identityWarnings()}<p class="muted">点动作设置主类。主类会同步到计划和进行中的训练；已完成的训练保留当时的分类。</p>${sections.length?`<div class="library-groups">${sections.map(([label,items])=>`<section class="library-group"><div class="row"><h2>${label?`<i class="grp-tag">${esc(label)}</i>`:'无主类'}</h2><span class="count">${items.length}</span></div><div class="editor-list">${items.map(e=>`<button type="button" class="editor-item library-row" data-action="library-edit" data-id="${esc(e.id)}" data-name="${esc(e.name)}"><span><b>${esc(e.name)}</b><small>${identityConflict(db(),e.id)?'旧编号待整理':libraryUsage(e)}</small></span><span class="library-row-action">分类 ›</span></button>`).join('')}</div></section>`).join('')}</div>`:'<div class="empty"><p>动作库还是空的。点右上角「＋」新建一个动作。</p></div>'}<button class="outline wide" data-action="library-new">＋ 新建动作</button><p class="footnote">动作库只收录你自己创建的动作，不会加入任何内置动作目录。</p>`;
+ const all=libraryExercises(db()),groups=usedExerciseGroups(db());
+ if(libraryGroup&&!groups.includes(libraryGroup))libraryGroup=null;
+ if(libraryGroup)return libraryGroupPage(libraryGroup,all);
+ const loose=all.filter(e=>!exerciseGroupLabel(e));
+ const cards=groups.map(group=>`<button type="button" class="library-category" data-action="library-group" data-group="${esc(group)}"><span class="library-category-name"><i class="grp-tag">${esc(group)}</i></span><span class="library-category-meta">${libraryItems(group,all).length} 个动作</span><span class="library-category-arrow" aria-hidden="true">›</span></button>`).join('');
+ return `<div class="page-heading"><div><p class="eyebrow">自己创建的动作</p><h1>动作库</h1></div></div>${identityWarnings()}<p class="muted">先选一个主类，再进入大类添加或整理动作。</p><div class="library-categories">${cards}</div><p class="footnote">还有 ${loose.length} 个未分类动作。进入任意大类后点「添加动作」，可从未分类中多选加入。</p><p class="footnote">动作库只收录你自己创建的动作，不会加入任何内置动作目录。</p>`;
+}
+function libraryGroupPage(group,all=libraryExercises(db())){
+ const items=libraryItems(group,all),loose=all.filter(e=>!exerciseGroupLabel(e));
+ return `<button class="text-button" data-action="library-home">‹ 全部主类</button><div class="page-heading"><div><p class="eyebrow">动作库 · 主类</p><h1>${esc(group)}</h1></div><span class="count">${items.length} 个动作</span></div>${identityWarnings()}<p class="muted">主类为「${esc(group)}」的动作。分类会同步到计划和进行中的训练；已完成的训练保留当时的分类。</p><button class="primary wide" data-action="library-add" data-group="${esc(group)}">＋ 添加动作</button>${items.length?`<div class="editor-list">${items.map(e=>`<button type="button" class="editor-item library-row" data-action="library-edit" data-id="${esc(e.id)}" data-name="${esc(e.name)}"><span><b>${esc(e.name)}</b><small>${identityConflict(db(),e.id)?'旧编号待整理':libraryUsage(e)}</small></span><span class="library-row-action">调整 ›</span></button>`).join('')}</div>`:'<div class="empty"><p>这个主类还没有动作。点「添加动作」从未分类中挑选。</p></div>'}<p class="footnote">「添加动作」只列出未分类的动作（当前 ${loose.length} 个），可多选加入这个主类。</p>`;
+}
+function libraryAssign(group,list){
+ const conflictID=list.map(e=>e.id).find(id=>identityConflict(db(),id));
+ if(conflictID){identityResolver(conflictID);return false;}
+ return mutate(d=>{
+  for(const e of list){
+   const record=structuredClone(e);record.group=group;
+   putLibraryExercise(d,record);
+   syncExerciseGroup(d,e.id,group);
+  }
+ },`已加入「${group}」`);
+}
+function libraryAdd(group,selected=[]){
+ const candidates=libraryExercises(db()).filter(e=>!exerciseGroupLabel(e)).sort(byLibraryName);
+ const chosen=selected.map(id=>candidates.find(e=>e.id===id)).filter(Boolean);
+ const rows=candidates.map((e,i)=>{
+  const conflict=identityConflict(db(),e.id),on=!conflict&&selected.includes(e.id);
+  return `<button class="library-item${on?' picked':''}" type="button" data-modal="pick-${i}" aria-pressed="${on}">${esc(e.name)}<span>${conflict?'整理':on?'✓':'＋'}</span></button>`;
+ }).join('');
+ const list=candidates.length?`<p class="muted picker-hint">只显示未分类动作；可多选，加入后会同步计划和进行中的训练。</p><div class="editor-list">${rows}</div>`:'<div class="empty"><p>没有未分类的动作。可以直接新建一个。</p></div>';
+ showDialog(`添加动作到「${group}」`,`${list}<button type="button" class="primary wide" data-modal="confirm" ${chosen.length?'':'disabled'}>加入「${esc(group)}」（已选 ${chosen.length}）</button><button type="button" class="outline wide" data-modal="new">新建动作并加入</button><button type="button" class="outline wide" data-modal="back">返回</button>`,null,{
+  ...Object.fromEntries(candidates.map((e,i)=>['pick-'+i,()=>{
+   if(identityConflict(db(),e.id)){identityResolver(e.id);return;}
+   const next=[...selected],at=next.indexOf(e.id);if(at<0)next.push(e.id);else next.splice(at,1);
+   libraryAdd(group,next);
+  }])),
+  confirm:()=>{if(!chosen.length)return;if(libraryAssign(group,chosen))$('#modal').close();},
+  new:()=>libraryNew(group,()=>libraryAdd(group,chosen),chosen),
+  back:()=>$('#modal').close()
+ });
 }
 function libraryEditor(e){
  if(identityConflict(db(),e.id)){identityResolver(e.id);return;}
- showDialog('设置主类',`<p><b>${esc(e.name)}</b><span class="muted"> · ${esc(libraryUsage(e))}</span></p>${groupPicker(e)}<p class="footnote">保存后，计划和进行中的训练会一起更新；已完成的训练保留当时的分类。</p>`,fd=>{
+ showDialog('调整动作与主类',`<p><b>${esc(e.name)}</b><span class="muted"> · ${esc(libraryUsage(e))}</span></p>${groupPicker(e)}<p class="footnote">保存后，计划和进行中的训练会一起更新；已完成的训练保留当时的分类。</p>`,fd=>{
   try{
    const group=normalizeGroupName(fd.get('groupNew'))??normalizeGroupName(fd.get('group'));
    if(mutate(d=>{const record=structuredClone(e);if(group===null)delete record.group;else record.group=group;putLibraryExercise(d,record);syncExerciseGroup(d,e.id,group);},'主类已保存'))$('#modal').close();
   }catch(err){toast(err.message);}
  });
 }
-function libraryNew(){
+function libraryNew(group=null,back=null,selected=[]){
  exerciseEditor(exercise(),saved=>{
+  if(group){
+   saved.group=group;
+   if(libraryAssign(group,[...selected,saved]))$('#modal').close();
+   return;
+  }
   if(mutate(d=>{putLibraryExercise(d,saved);syncExerciseName(d,saved);syncExerciseGroup(d,saved.id,exerciseGroupLabel(saved));},'动作已加入动作库'))$('#modal').close();
- },()=>$('#modal').close(),{library:true});
+ },back??(()=>$('#modal').close()),group?{category:group}:{library:true});
 }
 function settings(){return `<h1>设置</h1>${identityWarnings()}<section class="settings-card"><h2>个人身体档案</h2><p>体重设置后持续使用，想改时再改；身高和性别选填。</p><button class="primary wide" data-action="profile-open">身体档案 / 修改体重</button></section><section class="settings-card"><h2>健康与 AI</h2><p>导入 Apple Health JSON、查看本机趋势，并生成可手动复制到 GPT 的分析报告。</p><button class="primary wide" data-action="health-open">打开健康与 AI</button></section><section class="settings-card"><h2>训练强度</h2><label class="effort-display">评分显示<select id="effort-display">${[['rpe','RPE'],['rir','RIR'],['off','关闭']].map(([value,label])=>`<option value="${value}" ${effortDisplay()===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="footnote">关闭后保留已保存的评分、组类型和力竭标记。</p></section><section class="settings-card"><h2>添加到主屏幕</h2><ol><li>用 iPhone 的 Safari 打开这个链接。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>从主屏幕打开一次，确认下方离线状态。</li></ol><div class="status-row"><b>离线使用</b><span id="offline-state">${offlineReady?'已就绪':'准备中，请保持联网'}</span></div><p class="footnote">添加后先检查记录是否齐全。若 Safari 与主屏幕版本的数据未共享，用导出 / 导入迁移。</p></section><section class="settings-card"><h2>版本与更新</h2><p>当前版本：${APP_VERSION}</p><p class="footnote">当前网址：${esc(window.location?.href??'')}</p><p id="update-state" class="footnote">${esc(updateState)}</p><button class="outline wide" data-action="app-update">检查更新</button><button class="outline wide" data-action="app-reload">刷新页面 / 载入新版</button><p class="footnote">新版下载完成后，回到空闲的训练首页会自动载入。训练或编辑时可继续操作，手动刷新前会保存训练重量和备注。</p></section><section class="settings-card"><h2>休息计时</h2><p>页面打开时倒计时，到点尝试播放提示音。返回页面时会恢复正确剩余时间。</p><aside class="warning"><b>锁屏后不保证提醒</b><p>网页无法在离线锁屏或后台可靠地准时发声。${isIPhone?'可先设置灵动岛提醒，再从组间休息面板启动系统计时。':'如需锁屏提醒，请同时使用手机系统计时器。'}</p></aside>${isIPhone?'<button class="outline wide" data-action="island-setup">灵动岛提醒设置</button>':''}<button class="outline wide" data-action="wake">${awake?'关闭保持屏幕常亮':'训练时保持屏幕常亮'}</button><p class="footnote">需要浏览器支持，可能增加耗电；切到后台后会暂停。</p></section><section class="settings-card"><h2>记录与备份</h2><button class="primary wide" data-action="full-export">导出完整备份（推荐）</button><button class="outline wide" data-action="full-import">恢复完整备份 / 换机</button><button class="text-button" data-action="full-before">导出完整恢复前副本</button><input id="full-import-file" type="file" accept="application/json,.json" hidden><p class="footnote">完整备份含训练、健康、动作类型、身体档案、体重历史及训练快照；组标记与评分可在 1.8.5 或更新版本查看。下面的训练单独备份不包含其他分区。</p><button class="outline wide" data-action="history-deleted">查看最近删除的训练 (${db().deletedHistory?.length??0})</button><p>记录只存在当前设备，不上传训练数据。清除网站数据、移除网页应用或更换手机可能导致丢失，请定期导出。</p><button class="primary wide" data-action="export">导出训练备份</button><button class="outline wide" data-action="import">导入备份 / 迁移原生版记录</button><button class="text-button" data-action="export-previous">导出上次恢复前的副本</button><button class="text-button" data-action="export-identity-original">导出动作关联修复前的副本</button>${repo.loadError?'<button class="outline wide" data-action="export-raw">导出当前原始文件</button>':''}<input id="import-file" type="file" accept="application/json,.json" hidden><p class="footnote">支持 Rain Lift 网页版及原生版 JSON 备份。导入会先保留一份本机副本，再替换当前数据。</p></section><p class="footnote">Rain Lift · 网页版 ${APP_VERSION}<br>无需开发者签名。建议从主屏幕使用，并保留相同网址。</p>`;}
 function download(raw,name,type='application/json'){const blob=new Blob([raw],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
@@ -578,7 +620,9 @@ function extraAction(a,b){
  if(a==='app-update'){checkAppUpdate(true);}
  else if(a==='app-reload'){reloadApp();}
  else if(a==='history-resolve'){identityResolver(b.dataset.id);}
- else if(a==='library-new'){libraryNew();}
+ else if(a==='library-group'){libraryGroup=b.dataset.group;render();scrollTo(0,0);}
+ else if(a==='library-home'){libraryGroup=null;render();scrollTo(0,0);}
+ else if(a==='library-add'){libraryAdd(b.dataset.group);}
  else if(a==='library-edit'){const e=libraryExercises(db()).find(x=>x.id===b.dataset.id&&x.name===b.dataset.name);if(e)libraryEditor(e);else toast('找不到这个动作，请重新打开动作库。');}
  else if(a==='history-unconfirmed'){historyID=null;view='history';tab='session';render();}
  else if(a==='history-tab'){tab=b.dataset.tab;render();}
