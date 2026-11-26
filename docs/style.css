@@ -92,3 +92,6 @@
 .library-row b{overflow-wrap:anywhere}
 .library-row-action{flex-shrink:0;color:var(--accent);font-size:14px}
 .library-page-actions{margin:18px 0}
+.picker-hint{margin:0 0 12px}
+.library-item.picked{background:var(--surface2);box-shadow:inset 3px 0 var(--accent)}
+.library-item.picked span{font-weight:700}

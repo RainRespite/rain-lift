@@ -63,7 +63,7 @@ test('the picker shows both unresolved names and routes a selection to the resol
  const d=collision(),app=createAppHarness(d);app.action('start',{id:d.plans[0].id});
  app.action('manage');app.modalAction('add');
  assert.match(app.modalHtml,/龙下胸/);assert.match(app.modalHtml,/龙侧平举/);
- const before=app.state;app.modalAction('choose-1');
+ const before=app.state;app.modalAction('pick-1');
  assert.match(app.modalHtml,/data-modal="split"/);
  assert.deepEqual(app.state,before);
 });

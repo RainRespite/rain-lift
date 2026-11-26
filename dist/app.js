@@ -1,11 +1,11 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName} from './data.js?v=1.9.4';
-import {createHealthUI} from './health-ui.js?v=1.9.4';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.4';
-import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.4';
-import {recordsPanel} from './records-ui.js?v=1.9.4';
-import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.4';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,libraryExercises,putLibraryExercise,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup,syncExerciseName} from './data.js?v=1.9.5';
+import {createHealthUI} from './health-ui.js?v=1.9.5';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.5';
+import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.5';
+import {recordsPanel} from './records-ui.js?v=1.9.5';
+import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.5';
 
-const APP_VERSION='1.9.4';
+const APP_VERSION='1.9.5';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
@@ -260,7 +260,7 @@ function planEditor(plan){
  showDialog('编辑计划',`<label>计划名称<input name="planName" value="${esc(plan.name)}" required maxlength="100"></label><p class="muted">动作与顺序 · 调整后点保存，已有训练记录保留。</p><div class="editor-list">${plan.exercises.map((e,i)=>`<div class="editor-item"><div><b>${i+1}. ${esc(e.name)}</b>${groupTag(e)}<small>${e.target} 组 · 休息 ${e.rest} 秒</small></div><div class="mini-actions"><button type="button" data-modal="edit-${i}">设置</button><button type="button" data-modal="order-${i}" aria-label="调整${esc(e.name)}的顺序">调整顺序</button><button type="button" data-modal="up-${i}" aria-label="上移动作" ${i===0?'disabled':''}>↑</button><button type="button" data-modal="down-${i}" aria-label="下移动作" ${i===plan.exercises.length-1?'disabled':''}>↓</button><button type="button" data-modal="remove-${i}" aria-label="从计划移除${esc(e.name)}">移除</button></div></div>`).join('')}</div><button class="outline wide" type="button" data-modal="add">＋ 添加动作</button>${db().plans.some(p=>p.id===plan.id)?'<button class="danger wide" type="button" data-modal="delete">删除计划</button>':''}`,fd=>{
  plan.name=String(fd.get('planName')).trim();if(mutate(d=>{const i=d.plans.findIndex(p=>p.id===plan.id),renamed=plan.exercises.filter(e=>d.plans[i]?.exercises.some(old=>old.id===e.id&&old.name!==e.name));if(i<0)d.plans.push(plan);else d.plans[i]=plan;for(const e of renamed)syncExerciseName(d,e);},'计划已保存'))$('#modal').close();
  },{
- add:()=>{saveName();const pool=libraryExercises(db()).filter(e=>!plan.exercises.some(x=>x.id===e.id));exercisePicker('添加动作',pool,e=>{plan.exercises.push(structuredClone(e));planEditor(plan);},()=>exerciseEditor(exercise(),saved=>{mutate(d=>putLibraryExercise(d,saved),'动作已加入动作库');plan.exercises.push(saved);planEditor(plan);},()=>planEditor(plan)),()=>planEditor(plan));},
+ add:()=>{saveName();const pool=libraryExercises(db()).filter(e=>!plan.exercises.some(x=>x.id===e.id));const addAll=list=>{const conflictID=list.map(e=>e.id).find(id=>identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}for(const e of list)plan.exercises.push(structuredClone(e));planEditor(plan);};exercisePicker('添加动作',pool,addAll,(selected=[])=>exerciseEditor(exercise(),saved=>{mutate(d=>putLibraryExercise(d,saved),'动作已加入动作库');for(const e of selected)plan.exercises.push(structuredClone(e));plan.exercises.push(saved);planEditor(plan);},()=>planEditor(plan)),()=>planEditor(plan),undefined,{multiple:true});},
  delete:()=>confirmAction('删除这个计划？','已有训练记录会保留。','删除计划',()=>mutate(d=>{d.plans=d.plans.filter(p=>p.id!==plan.id);},'计划已删除')),
  ...Object.fromEntries(plan.exercises.flatMap((e,i)=>[
  [`edit-${i}`,()=>{saveName();exerciseEditor(structuredClone(e),v=>{plan.exercises[i]=v;planEditor(plan);},()=>planEditor(plan));}],
@@ -406,19 +406,37 @@ function groupExercises(list){
  if(rest.length)sections.push({label:null,items:rest});
  return sections;
 }
-function exercisePicker(title,list,choose,create,back,preferred=undefined){
+function exercisePicker(title,list,choose,create,back,preferred=undefined,{multiple=false,selected=[]}={}){
  const seen=new Set(),found=list.filter(e=>{const key=identityConflict(db(),e.id)?JSON.stringify([e.id,e.name]):e.id;return !seen.has(key)&&seen.add(key);});
  const sections=groupExercises(found);
  const active=Math.max(0,sections.findIndex(s=>s.label===preferred));
  const tabs=sections.map((s,i)=>`<button type="button" class="grp-tab${i===active?' on':''}" data-modal="tab-${i}">${esc(s.label??'无主类')}</button>`).join('');
  const items=sections[active]?.items??[];
- const rows=items.map((e,i)=>`<button class="library-item" type="button" data-modal="choose-${i}">${esc(e.name)}<span>${identityConflict(db(),e.id)?'整理':'＋'}</span></button>`).join('');
- showDialog(title,`${tabs?`<div class="grp-tabs" role="tablist">${tabs}</div>`:''}${rows?`<div class="editor-list">${rows}</div>`:''}<button type="button" class="outline wide" data-modal="new">创建新动作</button><button type="button" class="outline wide" data-modal="back">返回</button>`,null,{
-  ...Object.fromEntries(items.map((e,i)=>['choose-'+i,()=>choose(e)])),
-  ...Object.fromEntries(sections.map((s,i)=>['tab-'+i,()=>exercisePicker(title,list,choose,create,back,s.label)])),
-  new:create,back});
+ const rows=items.map((e,i)=>{
+  const conflict=identityConflict(db(),e.id),on=multiple&&!conflict&&selected.includes(e.id);
+  return `<button class="library-item${on?' picked':''}" type="button" data-modal="${multiple?'pick':'choose'}-${i}" aria-pressed="${on}">${esc(e.name)}<span>${conflict?'整理':on?'✓':'＋'}</span></button>`;
+ }).join('');
+ const picked=selected.map(id=>found.find(e=>e.id===id)).filter(Boolean);
+ const hint=multiple?'<p class="muted picker-hint">可勾选多个动作，切换大类会保留已选。</p>':'';
+ const confirm=multiple?`<button type="button" class="primary wide" data-modal="confirm" ${picked.length?'':'disabled'}>添加动作（已选 ${picked.length}）</button>`:'';
+ showDialog(title,`${hint}${tabs?`<div class="grp-tabs" role="tablist">${tabs}</div>`:''}${rows?`<div class="editor-list">${rows}</div>`:''}${confirm}<button type="button" class="outline wide" data-modal="new">创建新动作</button><button type="button" class="outline wide" data-modal="back">返回</button>`,null,{
+  ...(multiple?Object.fromEntries(items.map((e,i)=>['pick-'+i,()=>{
+   if(identityConflict(db(),e.id)){identityResolver(e.id);return;}
+   const next=[...selected],at=next.indexOf(e.id);if(at<0)next.push(e.id);else next.splice(at,1);
+   exercisePicker(title,list,choose,create,back,sections[active]?.label??preferred,{multiple,selected:next});
+  }])):Object.fromEntries(items.map((e,i)=>['choose-'+i,()=>choose(e)]))),
+  ...Object.fromEntries(sections.map((s,i)=>['tab-'+i,()=>exercisePicker(title,list,choose,create,back,s.label,{multiple,selected})])),
+  ...(multiple?{confirm:()=>{if(picked.length)choose(picked);}}:{}),
+  new:()=>create(multiple?picked:undefined),back});
 }
-function pickExercise(replaceID=null){const add=(e,remember=false)=>{const conflictID=[e.id,db().active.movements.find(m=>m.id===replaceID)?.exercise.id].find(id=>id&&identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}if(mutate(d=>{if(replaceID){const m=d.active.movements.find(m=>m.id===replaceID);m.exercise=structuredClone(e);delete m.overrideWeight;m.skipped=false;}else d.active.movements.push({id:uid(),exercise:structuredClone(e),sets:[],skipped:false});if(remember)putLibraryExercise(d,structuredClone(e));},'动作已更新'))manage();};const current=replaceID?db().active.movements.find(m=>m.id===replaceID):null;exercisePicker(replaceID?'更换动作':'添加动作',libraryExercises(db()),add,()=>exerciseEditor(exercise(),e=>add(e,true),()=>pickExercise(replaceID)),manage,current?exerciseGroupLabel(current.exercise):undefined);}
+function pickExercise(replaceID=null){
+ const conflictOf=list=>list.map(e=>e.id).find(id=>identityConflict(db(),id));
+ const add=(e,remember=false)=>{const conflictID=[e.id,db().active.movements.find(m=>m.id===replaceID)?.exercise.id].find(id=>id&&identityConflict(db(),id));if(conflictID){identityResolver(conflictID);return;}if(mutate(d=>{if(replaceID){const m=d.active.movements.find(m=>m.id===replaceID);m.exercise=structuredClone(e);delete m.overrideWeight;m.skipped=false;}else d.active.movements.push({id:uid(),exercise:structuredClone(e),sets:[],skipped:false});if(remember)putLibraryExercise(d,structuredClone(e));},'动作已更新'))manage();};
+ const addMany=(list,remember=[])=>{const conflictID=conflictOf(list);if(conflictID){identityResolver(conflictID);return;}if(mutate(d=>{for(const e of list)d.active.movements.push({id:uid(),exercise:structuredClone(e),sets:[],skipped:false});for(const id of remember){const e=list.find(x=>x.id===id);if(e)putLibraryExercise(d,structuredClone(e));}},'动作已更新'))manage();};
+ const current=replaceID?db().active.movements.find(m=>m.id===replaceID):null;
+ const createNew=selected=>exerciseEditor(exercise(),e=>replaceID?add(e,true):addMany([...selected,e],[e.id]),()=>pickExercise(replaceID));
+ exercisePicker(replaceID?'更换动作':'添加动作',libraryExercises(db()),replaceID?add:addMany,createNew,manage,current?exerciseGroupLabel(current.exercise):undefined,{multiple:!replaceID});
+}
 
 $('#app').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;e.preventDefault();const m=movement(),a=b.dataset.action;
  if(a==='nav'){if(db().active&&!preserveTrainingInputs())return;view=b.dataset.view;historyID=null;render();scrollTo(0,0);}

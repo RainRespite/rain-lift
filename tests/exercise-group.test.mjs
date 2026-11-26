@@ -181,10 +181,60 @@ test('a library action can be added to a plan through the category picker',()=>{
  h.modalAction('add');
  assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-0">手臂/);
  assert.match(h.modalHtml,/class="library-item"[^>]*>绳索下压<span>/);
- h.modalAction('choose-0');
+ h.modalAction('pick-0');
+ assert.match(h.modalHtml,/添加动作（已选 1）/);
+ h.modalAction('confirm');
  h.submit();
  assert.equal(h.state.plans[1].exercises.some(e=>e.name==='绳索下压'),true);
  assert.equal(h.state.library.length,1,'引用库内动作不会复制出第二条');
+});
+
+test('a plan can add several actions across categories in one selection',()=>{
+ const d=initial();
+ d.plans[1].exercises[0].group='胸';d.plans[1].exercises[1].group='肩';d.plans[1].exercises[2].group='肩';
+ const h=createAppHarness(d);
+ h.action('plan-edit',{id:d.plans[0].id});
+ h.modalAction('add');
+ assert.match(h.modalHtml,/可勾选多个动作/);
+ assert.match(h.modalHtml,/添加动作（已选 0）/);
+ assert.match(h.modalHtml,/aria-pressed="false">哑铃肩推<span>＋/);
+ h.modalAction('pick-0');h.modalAction('pick-1');
+ assert.match(h.modalHtml,/class="library-item picked"[^>]*aria-pressed="true">哑铃肩推<span>✓/);
+ assert.match(h.modalHtml,/添加动作（已选 2）/);
+ h.modalAction('tab-1');
+ assert.match(h.modalHtml,/添加动作（已选 2）/,'切换大类保留已选');
+ assert.match(h.modalHtml,/aria-pressed="false">卧推<span>＋/);
+ h.modalAction('pick-0');
+ assert.match(h.modalHtml,/添加动作（已选 3）/);
+ h.modalAction('confirm');
+ assert.match(h.modalHtml,/编辑计划/);
+ assert.equal(h.state.plans[0].exercises.length,3,'确认前不写入计划');
+ h.submit();
+ assert.deepEqual(h.state.plans[0].exercises.map(e=>e.name),['宽距高位下拉','坐姿划船','哑铃弯举','哑铃肩推','侧平举','卧推']);
+ assert.equal(h.state.plans[1].exercises.length,3,'源计划不受影响');
+});
+
+test('a training session can add several actions across categories at once',()=>{
+ const d=initial();d.plans[0].exercises[0].group='背';
+ d.plans[1].exercises[0].group='胸';d.plans[1].exercises[1].group='肩';d.plans[1].exercises[2].group='肩';
+ start(d,d.plans[0].id);
+ const h=createAppHarness(d);
+ h.action('manage');h.modalAction('add');
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-0">背/);
+ h.modalAction('tab-1');
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-1">肩/);
+ h.modalAction('pick-0');h.modalAction('pick-1');
+ assert.match(h.modalHtml,/添加动作（已选 2）/);
+ h.modalAction('tab-2');
+ assert.match(h.modalHtml,/添加动作（已选 2）/);
+ h.modalAction('pick-0');
+ assert.match(h.modalHtml,/添加动作（已选 3）/);
+ h.modalAction('confirm');
+ const state=h.state;
+ assert.equal(state.active.movements.length,6);
+ assert.deepEqual(state.active.movements.slice(3).map(m=>m.exercise.name),['哑铃肩推','侧平举','卧推'],'按点选顺序加入');
+ assert.equal(state.library,undefined,'引用已有动作不会新建库条目');
+ assert.match(h.modalHtml,/调整本次训练/);
 });
 
 test('training rows show the category and the in-session editor no longer changes it',()=>{
@@ -227,6 +277,7 @@ test('replacing a movement opens the picker on its own category',()=>{
  assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-1">肩<\/button>/);
  assert.match(h.modalHtml,/>坐姿划船<span>/);
  assert.doesNotMatch(h.modalHtml,/>宽距高位下拉<span>/,'别的类不混进当前列表');
+ assert.doesNotMatch(h.modalHtml,/添加动作（已选/,'更换动作仍为单选');
 });
 
 test('training and full backups carry the library and category across devices',()=>{
