@@ -1,6 +1,6 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.9.2';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.2';
-import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.2';
+import {validateLoad,validateSnapshot} from './load.js?v=1.9.3';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.3';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.3';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const EXERCISE_GROUPS=['背','肩','胸','腿','核心','手臂'];

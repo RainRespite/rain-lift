@@ -1,11 +1,11 @@
-import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup} from './data.js?v=1.9.2';
-import {createHealthUI} from './health-ui.js?v=1.9.2';
-import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.2';
-import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.2';
-import {recordsPanel} from './records-ui.js?v=1.9.2';
-import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.2';
+import {KEY,TRAINING_V2_KEY,uid,exercise,initial,validate,parseBackup,identityConflict,identityNames,splitExerciseIdentity,confirmExerciseIdentity,reviseExercise,previous,suggested,start,record,removeSet,finish,deleteHistory,restoreHistory,remaining,findSet,Repository,usedExerciseGroups,exerciseGroupLabel,normalizeGroupName,syncExerciseGroup} from './data.js?v=1.9.3';
+import {createHealthUI} from './health-ui.js?v=1.9.3';
+import {createBodyUI,prepareStorage} from './body-ui.js?v=1.9.3';
+import {SET_TYPES,effortLabel,performanceCountText,performanceDetails,setPerformance,setTypeOf,trainingSetCounts} from './performance.js?v=1.9.3';
+import {recordsPanel} from './records-ui.js?v=1.9.3';
+import {DEFAULT_REP_RANGE,LOOKBACK_DAYS,recommendProgression,validateProgression} from './progression.js?v=1.9.3';
 
-const APP_VERSION='1.9.2';
+const APP_VERSION='1.9.3';
 const store=prepareStorage(localStorage);
 const isIPhone=/\biPhone\b/.test(navigator.userAgent??'');
 const clockShortcutName='Rain Lift 组间休息';
