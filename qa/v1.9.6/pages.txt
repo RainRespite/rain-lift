@@ -18,7 +18,9 @@ Rain-Lift v1.9.6 原手机入口（GitHub Pages）线上核验
 
 标签
 - 本地标签 v1.9.4 -> 191f017、v1.9.5 -> 9fe6939、v1.9.6 -> 5a9aafb 均已创建。
-- GitHub Desktop 的 Push 只推分支，远端暂无这三个版本标签；待可用 HTTPS 凭据后补推，本轮未读取或导出任何凭据。
+- 发布后把仓库级 push.followTags 临时设为 true，由 GitHub Desktop 再执行一次 Push；远端已出现三个标签，随后清除该配置。
+- git ls-remote 返回：v1.9.4 标签对象 c4d80d6 -> 提交 191f017；v1.9.5 标签对象 9154d5a -> 提交 9fe6939；v1.9.6 标签对象 fea6913 -> 提交 5a9aafb。
+- 全程未读取或导出任何 GitHub 凭据。
 
 范围
 - 只更新原版与手机 Pages 入口；参赛版工作区 rain-lift-v1.9.1、参赛分支与参赛站点未改动。
