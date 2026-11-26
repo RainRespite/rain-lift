@@ -1,0 +1,25 @@
+Rain-Lift v1.9.6 原手机入口（GitHub Pages）线上核验
+日期：2026-11-26
+入口：https://rainrespite.github.io/rain-lift/
+发布提交：5a9aafb766907dcebeab37019dd5c95249aaa2a6 "Release v1.9.6 with category-first exercise library"
+
+推送与部署
+- 通过 GitHub Desktop 从 worktree rain-lift-main 执行 Push origin，日志显示：
+  git push --progress -- origin main:main (took 2.816s)
+- git ls-remote origin refs/heads/main 返回 5a9aafb，确认远端 main 已更新。
+- 13:05:05 CST 起线上入口返回 HTTP 200，首页资源查询为 v=1.9.6。
+
+线上文件逐项核验
+- 用 no-cache 请求从线上重新下载 20 个静态文件，SHA-256 与 qa/v1.9.6/static-sha256.txt 逐行一致（diff 无输出，20/20 匹配）。
+- sw.js 线上内容含缓存标识 rainlift-shell-v1.9.6。
+- 核验命令要点：
+  curl -H 'Cache-Control: no-cache' https://rainrespite.github.io/rain-lift/<file>?verify=1.9.6
+  shasum -a 256 * | diff -u qa/v1.9.6/static-sha256.txt -
+
+标签
+- 本地标签 v1.9.4 -> 191f017、v1.9.5 -> 9fe6939、v1.9.6 -> 5a9aafb 均已创建。
+- GitHub Desktop 的 Push 只推分支，远端暂无这三个版本标签；待可用 HTTPS 凭据后补推，本轮未读取或导出任何凭据。
+
+范围
+- 只更新原版与手机 Pages 入口；参赛版工作区 rain-lift-v1.9.1、参赛分支与参赛站点未改动。
+- iPhone 主屏幕真机升级与交互验收仍待用户按交付说明执行。
