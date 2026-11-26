@@ -1,4 +1,4 @@
-import {isWorkingSet,performanceDetails} from './performance.js?v=1.9.3';
+import {isWorkingSet,performanceDetails} from './performance.js?v=1.9.4';
 
 export const LOOKBACK_DAYS = 30;
 export const MAX_PROGRESS_RPE = 8;

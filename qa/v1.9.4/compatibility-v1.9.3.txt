@@ -1,0 +1,11 @@
+✔ a v1.9.3 full backup opens unchanged and only gains the optional library when used (5.341416ms)
+✔ v1.9.3 code accepts a backup with a library and keeps recording on it (1.033792ms)
+✔ a v1.9.3 training-only import has no library and stays editable (0.468042ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.786334

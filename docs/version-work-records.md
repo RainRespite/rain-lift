@@ -4,6 +4,7 @@
 
 | 版本 | 主要工作及版本位置 | 实际测试记录 | 发布与设备验证 |
 | --- | --- | --- | --- |
+| v1.9.4 | 动作库：底栏第 4 个标签集中设置主类，汇总计划、本次训练和库内动作，可新建动作；计划和训练只显示标签；[交付与恢复](v1.9.4-delivery.md)，分支 `codex/exercise-library-v1.9.4` | 最终 [321 项通过、0 失败](../qa/v1.9.4/tests-final.txt)；[v1.9.3 真实代码兼容 3 项](../qa/v1.9.4/compatibility-v1.9.3.txt)；[界面核验](../qa/v1.9.4/browser.txt)与 [20 个静态文件校验](../qa/v1.9.4/static-sha256.txt) | 未发布：分支待用户确认后合入与推送，参赛版和手机入口未改动。内置浏览器视觉截图受阻，iPhone 真机待验收 |
 | v1.9.3 | 动作主类：六个打底加自定义类，直接写在动作记录上；[交付与恢复](v1.9.3-delivery.md)，分支 `codex/exercise-groups-v1.9.2`，先前的内置动作目录方案保存在标签 `archive/exercise-library-catalog` | 基线 [305 项](../qa/v1.9.3/baseline-tests.txt)，最终 [318 项通过、0 失败](../qa/v1.9.3/tests-final.txt)；[v1.9.1 真实代码兼容 3 项](../qa/v1.9.3/compatibility-v1.9.1.txt)；[界面核验](../qa/v1.9.3/browser.txt)与 [20 个静态文件校验](../qa/v1.9.3/static-sha256.txt) | 已发布：合入 `main` 并推送 GitHub，手机 Pages 入口更新为 1.9.3，标签 `v1.9.3`；参赛版不受影响。内置浏览器视觉截图受阻，iPhone 真机待验收 |
 | v1.9.1 | 分组型预填、普通工作组进度、AI 工作组对照，[交付与恢复](v1.9.1-delivery.md)，标签 `v1.9.1` | [305 项](../qa/v1.9.1/tests-final.txt)和[相邻兼容 8 项](../qa/v1.9.1/compatibility-v1.9.0.txt)通过 | 原 GitHub Pages 手机入口，隔离 Chrome 离线和回滚通过，iPhone 真机待验收 |
 | v1.9.0 | 渐进建议、目标快照与手动采用；[交付与恢复](v1.9-delivery.md)，标签 `v1.9.0` | [293 项](../qa/v1.9/tests-final.txt)和兼容矩阵 27 项通过 | 原 GitHub Pages 手机入口，隔离 Chrome 更新/回滚/离线通过，iPhone 真机待验收 |

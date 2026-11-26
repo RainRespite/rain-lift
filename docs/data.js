@@ -1,6 +1,6 @@
-import {validateLoad,validateSnapshot} from './load.js?v=1.9.3';
-import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.3';
-import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.3';
+import {validateLoad,validateSnapshot} from './load.js?v=1.9.4';
+import {EFFORT_DISPLAYS,setPerformance,validatePerformance} from './performance.js?v=1.9.4';
+import {progressionTarget,validateProgression,validateProgressionTarget} from './progression.js?v=1.9.4';
 export const KEY='rainlift.web.v1';
 export const TRAINING_V2_KEY='rainlift.web.v2';
 export const EXERCISE_GROUPS=['背','肩','胸','腿','核心','手臂'];
@@ -19,7 +19,7 @@ export function validate(d){
  const set=(s,unit)=>s&&text(s.id)&&finite(s.weight,0,10000)&&integer(s.reps,1,999)&&finite(s.date,0,1e15)&&(s.load===undefined||d.version===2&&validateLoad(s.load,s.weight,unit))&&(s.performance===undefined||validatePerformance(s.performance))&&(s.progressionTarget===undefined||validateProgressionTarget(s.progressionTarget));
  const movement=m=>m&&ex(m.exercise)&&ids(m.sets)&&m.sets.every(s=>set(s,m.exercise.unit))&&(m.overrideWeight==null||finite(m.overrideWeight,0,10000))&&typeof m.skipped==='boolean';
  const session=s=>s&&text(s.id)&&text(s.planID)&&text(s.name)&&finite(s.started,0,1e15)&&(s.ended==null||finite(s.ended,s.started,1e15))&&typeof s.note==='string'&&s.note.length<=10000&&ids(s.movements)&&s.movements.every(movement)&&(s.loadSchemaVersion===undefined||d.version===2&&s.loadSchemaVersion===1&&validateSnapshot(s.bodyWeightSnapshot)&&s.movements.every(m=>m.sets.every(set=>set.load)));
- if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
+ if(!d||d.format!=='rainlift-web'||![1,2].includes(d.version)||!ids(d.plans)||!d.plans.every(p=>text(p.name)&&ids(p.exercises)&&p.exercises.every(ex))||(d.library!==undefined&&(!Array.isArray(d.library)||!ids(d.library)||!d.library.every(ex)))||!ids(d.history)||!d.history.every(s=>session(s)&&s.ended!=null)||(d.deletedHistory!==undefined&&(!Array.isArray(d.deletedHistory)||!d.deletedHistory.every(entry=>entry&&session(entry.session)&&entry.session.ended!=null&&finite(entry.deletedAt,0,1e15))))||(d.active!=null&&(!session(d.active)||d.active.ended!=null))||!ids([...d.history,...(d.deletedHistory??[]).map(entry=>entry.session),...(d.active?[d.active]:[])]))throw Error('备份格式或训练数据不正确，原记录未改变。');
  if(d.effortDisplay!==undefined&&!EFFORT_DISPLAYS.includes(d.effortDisplay))throw Error('强度显示偏好无效。');
  if(d.rest!=null&&(!text(d.rest.setID)||!text(d.rest.name)||!finite(d.rest.end,0,1e15)||!d.active?.movements.some(m=>m.sets.some(s=>s.id===d.rest.setID))))throw Error('备份中的休息计时无效。');
  return d;
@@ -38,8 +38,22 @@ export function parseBackup(raw){
  }
  validate(d);return d;
 }
-const currentReferences=(d,id)=>[...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===id);
+const currentReferences=(d,id)=>[...(d.library??[]),...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===id);
 const allReferences=(d,id)=>[...currentReferences(d,id),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)).filter(e=>e.id===id)];
+// The library is the master list of movements: definitions created inside it,
+// plus every definition currently referenced by a plan or the live session.
+// Conflicted legacy IDs keep one row per name until the user resolves them.
+export function libraryExercises(d){
+ const seen=new Set();
+ return [...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[]),...(d.library??[])].filter(e=>{
+  const key=identityConflict(d,e.id)?JSON.stringify([e.id,e.name]):e.id;
+  return !seen.has(key)&&seen.add(key);
+ });
+}
+export function putLibraryExercise(d,e){
+ const library=d.library??=[],index=library.findIndex(x=>x.id===e.id);
+ if(index<0)library.push(structuredClone(e));else library[index]=structuredClone(e);
+}
 // Deleted snapshots are retained for recovery, but do not prove live aliases or
 // contribute recommendations. Explicit identity splits still update their IDs.
 const allStoredReferences=(d,id)=>[...allReferences(d,id),...(d.deletedHistory??[]).flatMap(entry=>entry.session.movements.map(m=>m.exercise)).filter(e=>e.id===id)];
@@ -54,17 +68,25 @@ export function normalizeGroupName(value){
 // Custom categories are derived from the labels in active use, so there is no
 // separate list to create, sync or delete.
 export function usedExerciseGroups(d){
- const used=[...new Set([...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].map(exerciseGroupLabel).filter(Boolean))];
+ const used=[...new Set([...(d.library??[]),...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].map(exerciseGroupLabel).filter(Boolean))];
  const custom=used.filter(name=>!EXERCISE_GROUPS.includes(name)).sort((a,b)=>a.localeCompare(b,'zh-CN'));
  return [...EXERCISE_GROUPS,...custom];
 }
-// A category belongs to the exercise identity: plans and the current session
-// follow it, while recorded history keeps the label that was in force then.
+// A category belongs to the exercise identity: the library, plans and the
+// active session follow it, while recorded history keeps the label that was in
+// force then.
 export function syncExerciseGroup(d,id,group){
  if(identityConflict(d,id))throw Error('请先整理这个动作的旧历史关联。');
- const refs=[...d.plans.flatMap(p=>p.exercises),...(d.active?.movements.map(m=>m.exercise)??[])].filter(x=>x.id===id);
+ const refs=currentReferences(d,id);
  for(const x of refs){if(group===null)delete x.group;else x.group=group;}
  return refs.length;
+}
+// Renames follow the same live references; completed sessions stay snapshots.
+export function syncExerciseName(d,e){
+ if(identityConflict(d,e.id))throw Error('请先整理这个动作的旧历史关联。');
+ const refs=currentReferences(d,e.id),names=[...new Set([e.name,...(e.knownNames??[]),...refs.flatMap(x=>[x.name,...(x.knownNames??[])])])];
+ for(const x of refs){x.name=e.name;x.knownNames=[...names];}
+ if(d.rest&&d.active?.movements.some(m=>m.exercise.id===e.id&&m.sets.some(s=>s.id===d.rest.setID)))d.rest.name=e.name;
 }
 // Different historical names can be rename snapshots. Concurrent definitions
 // need an explicit alias lineage before they can safely share recommendations.
@@ -101,7 +123,7 @@ export function reviseExercise(d,original,changes,mode='rename'){
  const updated={...original,...changes,id:original.id};
  if(mode==='new')return {...updated,id:uid(),knownNames:[updated.name]};
  if(updated.name!==original.name){
-  const references=[...d.plans.flatMap(p=>p.exercises),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===original.id);
+  const references=[...(d.library??[]),...d.plans.flatMap(p=>p.exercises),...d.history.flatMap(s=>s.movements.map(m=>m.exercise)),...(d.active?.movements.map(m=>m.exercise)??[])].filter(e=>e.id===original.id);
   updated.knownNames=[...new Set([...references.flatMap(e=>[...(e.knownNames??[]),e.name]),...(original.knownNames??[]),original.name,updated.name])];
  }
  return updated;
@@ -160,7 +182,7 @@ export class Repository{
   const next=structuredClone(this.db),result=fn(next);validate(next);
   // Removing a plan or ending a workout must not silently make an unresolved
   // shared ID look valid again. Only the explicit repair path can resolve it.
-  const ids=new Set([...this.db.plans.flatMap(p=>p.exercises.map(e=>e.id)),...(this.db.active?.movements.map(m=>m.exercise.id)??[])]);
+  const ids=new Set([...(this.db.library??[]).map(e=>e.id),...this.db.plans.flatMap(p=>p.exercises.map(e=>e.id)),...(this.db.active?.movements.map(m=>m.exercise.id)??[])]);
   for(const id of ids)if(identityConflict(this.db,id)&&!identityConflict(next,id))throw Error('请先整理旧动作的历史归属，再移除动作、删除计划或结束训练。');
   const raw=JSON.stringify(next);const key=this.key===TRAINING_V2_KEY||next.version===2?TRAINING_V2_KEY:KEY;this.storage.setItem(key,raw);this.key=key;this.raw=raw;this.db=next;return result;
  }
