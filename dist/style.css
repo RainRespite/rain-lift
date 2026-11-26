@@ -78,5 +78,7 @@
 .grp-chip.new{border-style:dashed}
 .grp-chip.new input[type=text]{display:inline-block;width:78px;min-height:26px;margin:0;padding:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:14px;color:var(--text)}
 .grp-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:100px;background:var(--surface2);color:var(--accent);font-size:12px;font-style:normal;vertical-align:2px}
-.library-group{margin:0;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--line);font-size:13px;font-weight:600;color:var(--accent);text-align:left}
-.library-group.blank{font-weight:400;color:var(--muted)}
+.grp-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 16px;padding-bottom:2px;scrollbar-width:none}
+.grp-tabs::-webkit-scrollbar{display:none}
+.grp-tab{flex-shrink:0;white-space:nowrap;min-height:44px;padding:9px 15px;border:1px solid var(--line);border-radius:100px;font-size:14px;color:var(--muted)}
+.grp-tab.on{background:var(--accent);border-color:var(--accent);color:var(--dark);font-weight:650}

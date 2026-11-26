@@ -115,23 +115,39 @@ test('an ambiguous category entry keeps the typed name over the radio and surviv
  h.action('plan-edit',{id:d.plans[0].id});assert.match(h.modalHtml,/grp-tag">小腿/);
 });
 
-test('training rows and the plan picker show the category and the in-session editor syncs plans',()=>{
+test('training rows show the category and the in-session editor syncs plans',()=>{
  const d=initial();d.plans[0].exercises[0].group='背';start(d,d.plans[0].id);
  const h=createAppHarness(d);
  h.action('manage');
  assert.match(h.modalHtml,/宽距高位下拉<\/b><i class="grp-tag">背<\/i>/);
  assert.match(h.html,/宽距高位下拉/);
  h.modalAction('add');
- assert.match(h.modalHtml,/class="library-group">背<\/p>/,'添加动作按主类分段');
- assert.match(h.modalHtml,/class="library-group blank">还没设主类的动作<\/p>/);
- assert.doesNotMatch(h.modalHtml,/宽距高位下拉<i class="grp-tag">/,'分段标题已说明分类，行内不再重复标签');
- assert.ok(h.modalHtml.indexOf('class="library-group">背')<h.modalHtml.indexOf('还没设主类的动作'),'已分类的排在前面');
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-0">背<\/button>/,'顶部先选主类');
+ assert.match(h.modalHtml,/class="grp-tab" data-modal="tab-1">无主类<\/button>/);
+ assert.match(h.modalHtml,/class="library-item"[^>]*>宽距高位下拉<span>/);
+ assert.doesNotMatch(h.modalHtml,/>坐姿划船<span>/,'只列出当前主类的动作');
+ h.modalAction('tab-1');
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-1">无主类<\/button>/);
+ assert.match(h.modalHtml,/>坐姿划船<span>/);
+ assert.doesNotMatch(h.modalHtml,/>宽距高位下拉<span>/);
+ h.modalAction('tab-0');
+ assert.match(h.modalHtml,/>宽距高位下拉<span>/);
  h.modalAction('back');
  h.modalAction('edit-0');h.submit({group:'胸'});
  const state=h.state;
  assert.equal(state.active.movements[0].exercise.group,'胸');
  assert.equal(state.plans[0].exercises[0].group,'胸','计划里的同一动作一起更新');
  assert.equal(state.active.movements[0].sets.length,0);
+});
+
+test('replacing a movement opens the picker on its own category',()=>{
+ const d=initial();d.plans[0].exercises[0].group='背';d.plans[0].exercises[1].group='肩';start(d,d.plans[0].id);
+ const h=createAppHarness(d);
+ h.action('manage');h.modalAction('replace-1');
+ assert.match(h.modalHtml,/更换动作/);
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-1">肩<\/button>/);
+ assert.match(h.modalHtml,/>坐姿划船<span>/);
+ assert.doesNotMatch(h.modalHtml,/>宽距高位下拉<span>/,'别的类不混进当前列表');
 });
 
 test('training and full backups carry the category across devices',()=>{
@@ -160,5 +176,6 @@ test('a category used only by the live session still joins the candidates and th
  const added=saved.plans[0].exercises.at(-1);
  assert.equal(added.name,'保加利亚分腿蹲');assert.equal(added.group,'腿','更新固定计划把主类一起带过去');
  h.action('manage');h.modalAction('add');
- assert.match(h.modalHtml,/class="library-group">腿<\/p><button class="library-item"[^>]*>保加利亚分腿蹲/);
+ assert.match(h.modalHtml,/class="grp-tab on" data-modal="tab-0">腿<\/button>/);
+ assert.match(h.modalHtml,/class="library-item"[^>]*>保加利亚分腿蹲<span>/);
 });
